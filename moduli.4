@@ -14,7 +14,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .Dd $Mdocdate: September 26 2012 $
-.Dt MODULI 5
+.Dt MODULI 4
 .Os
 .Sh NAME
 .Nm moduli
@@ -23,7 +23,7 @@
 The
 .Pa /etc/moduli
 file contains prime numbers and generators for use by
-.Xr sshd 8
+.Xr sshd 1M
 in the Diffie-Hellman Group Exchange key exchange method.
 .Pp
 New moduli may be generated with
@@ -40,7 +40,7 @@ pass, using
 .Ic ssh-keygen -T ,
 provides a high degree of assurance that the numbers are prime and are
 safe for use in Diffie-Hellman operations by
-.Xr sshd 8 .
+.Xr sshd 1M .
 This
 .Nm
 format is used as the output from each pass.
@@ -70,7 +70,7 @@ are Sophie Germain primes (type 4).
 Further primality testing with
 .Xr ssh-keygen 1
 produces safe prime moduli (type 2) that are ready for use in
-.Xr sshd 8 .
+.Xr sshd 1M .
 Other types are not used by OpenSSH.
 .It tests
 Decimal number indicating the type of primality tests that the number
@@ -105,16 +105,16 @@ The modulus itself in hexadecimal.
 .El
 .Pp
 When performing Diffie-Hellman Group Exchange,
-.Xr sshd 8
+.Xr sshd 1M
 first estimates the size of the modulus required to produce enough
 Diffie-Hellman output to sufficiently key the selected symmetric cipher.
-.Xr sshd 8
+.Xr sshd 1M
 then randomly selects a modulus from
 .Fa /etc/moduli
 that best meets the size requirement.
 .Sh SEE ALSO
 .Xr ssh-keygen 1 ,
-.Xr sshd 8
+.Xr sshd 1M
 .Sh STANDARDS
 .Rs
 .%A M. Friedl

@@ -176,9 +176,7 @@ key in
 .Pa ~/.ssh/id_ed25519
 or
 .Pa ~/.ssh/id_rsa .
-Additionally, the system administrator may use this to generate host keys,
-as seen in
-.Pa /etc/rc .
+Additionally, the system administrator may use this to generate host keys.
 .Pp
 Normally this program generates the key and asks for a file in which
 to store the private key.
@@ -230,7 +228,7 @@ If
 has also been specified, its argument is used as a prefix to the
 default path for the resulting host key files.
 This is used by
-.Pa /etc/rc
+.Pa /lib/svc/method/sshd
 to generate new host keys.
 .It Fl a Ar rounds
 When saving a private key this option specifies the number of KDF
@@ -471,7 +469,7 @@ Disable PTY allocation (permitted by default).
 Disable execution of
 .Pa ~/.ssh/rc
 by
-.Xr sshd 8
+.Xr sshd 1M
 (permitted by default).
 .Pp
 .It Ic no-x11-forwarding
@@ -492,9 +490,9 @@ Allows PTY allocation.
 Allows execution of
 .Pa ~/.ssh/rc
 by
-.Xr sshd 8 .
+.Xr sshd 1M .
 .Pp
-.It Ic permit-X11-forwarding
+.It Ic permit-x11-forwarding
 Allows X11 forwarding.
 .Pp
 .It Ic source-address Ns = Ns Ar address_list
@@ -584,7 +582,7 @@ a date in YYYYMMDD format, a time in YYYYMMDDHHMM[SS] format,
 a relative time (to the current time) consisting of a minus sign followed by
 an interval in the format described in the
 TIME FORMATS section of
-.Xr sshd_config 5 .
+.Xr sshd_config 4 .
 .Pp
 The end time may be specified as a YYYYMMDD date, a YYYYMMDDHHMM[SS] time,
 a relative time starting with a plus character or the string
@@ -763,7 +761,7 @@ Epoch to the distant future.
 .Pp
 For certificates to be used for user or host authentication, the CA
 public key must be trusted by
-.Xr sshd 8
+.Xr sshd 1M
 or
 .Xr ssh 1 .
 Please refer to those manual pages for details.
@@ -880,14 +878,14 @@ There is no need to keep the contents of this file secret.
 .It Pa /etc/moduli
 Contains Diffie-Hellman groups used for DH-GEX.
 The file format is described in
-.Xr moduli 5 .
+.Xr moduli 4 .
 .El
 .Sh SEE ALSO
 .Xr ssh 1 ,
 .Xr ssh-add 1 ,
 .Xr ssh-agent 1 ,
-.Xr moduli 5 ,
-.Xr sshd 8
+.Xr moduli 4 ,
+.Xr sshd 1M
 .Rs
 .%R RFC 4716
 .%T "The Secure Shell (SSH) Public Key File Format"
