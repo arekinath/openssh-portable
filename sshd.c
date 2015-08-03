@@ -2224,9 +2224,23 @@ main(int ac, char **av)
 
 #ifdef GSSAPI
 	if (options.gss_authentication) {
+#ifdef GSSAPI_STORECREDS_NEEDS_RUID
+		if (setreuid(authctxt->pw->pw_uid, -1) != 0) {
+			debug("setreuid %u: %.100s",
+			    (u_int) authctxt->pw->pw_uid, strerror(errno));
+			goto bail_storecred;
+		}
+#endif
 		temporarily_use_uid(authctxt->pw);
 		ssh_gssapi_storecreds();
 		restore_uid();
+#ifdef GSSAPI_STORECREDS_NEEDS_RUID
+		if (setuid(geteuid()) != 0) {
+			fatal("setuid %u: %.100s", (u_int) geteuid(),
+			    strerror(errno));
+		}
+ bail_storecred: ;
+#endif
 	}
 #endif
 #ifdef USE_PAM
