@@ -204,9 +204,7 @@ key in
 .Pa ~/.ssh/id_ed25519_sk
 or
 .Pa ~/.ssh/id_rsa .
-Additionally, the system administrator may use this to generate host keys,
-as seen in
-.Pa /etc/rc .
+Additionally, the system administrator may use this to generate host keys.
 .Pp
 Normally this program generates the key and asks for a file in which
 to store the private key.
@@ -272,7 +270,7 @@ If
 has also been specified, its argument is used as a prefix to the
 default path for the resulting host key files.
 This is used by
-.Pa /etc/rc
+.Pa /lib/svc/method/sshd
 to generate new host keys.
 .It Fl a Ar rounds
 When saving a private key, this option specifies the number of KDF
@@ -503,7 +501,7 @@ device to use, rather than letting the token middleware select one.
 Indicate that the generated private key should not require touch
 events (user presence) when making signatures.
 Note that
-.Xr sshd 8
+.Xr sshd 1M
 will refuse such signatures by default, unless overridden via
 an authorized_keys option.
 .It Cm resident
@@ -623,7 +621,7 @@ a date in YYYYMMDD format, a time in YYYYMMDDHHMM[SS] format,
 a relative time (to the current time) consisting of a minus sign followed by
 an interval in the format described in the
 TIME FORMATS section of
-.Xr sshd_config 5 .
+.Xr sshd_config 4 .
 .Pp
 The end time may be specified as a YYYYMMDD date, a YYYYMMDDHHMM[SS] time,
 a relative time starting with a plus character or the string
@@ -954,7 +952,7 @@ Disable PTY allocation (permitted by default).
 Disable execution of
 .Pa ~/.ssh/rc
 by
-.Xr sshd 8
+.Xr sshd 1M
 (permitted by default).
 .Pp
 .It Ic no-x11-forwarding
@@ -975,7 +973,7 @@ Allows PTY allocation.
 Allows execution of
 .Pa ~/.ssh/rc
 by
-.Xr sshd 8 .
+.Xr sshd 1M .
 .Pp
 .It Ic permit-X11-forwarding
 Allows X11 forwarding.
@@ -1020,7 +1018,7 @@ Epoch to the distant future.
 .Pp
 For certificates to be used for user or host authentication, the CA
 public key must be trusted by
-.Xr sshd 8
+.Xr sshd 1M
 or
 .Xr ssh 1 .
 Please refer to those manual pages for details.
@@ -1078,7 +1076,7 @@ KRLs that revoke keys by SHA256 hash are not supported by OpenSSH versions
 prior to 7.9.
 .It Cm hash : Ar fingerprint
 Revokes a key using a fingerprint hash, as obtained from a
-.Xr sshd 8
+.Xr sshd 1M
 authentication log message or the
 .Nm
 .Fl l
@@ -1111,7 +1109,7 @@ uses a simple list of identities and keys to determine whether a signature
 comes from an authorized source.
 This "allowed signers" file uses a format patterned after the
 AUTHORIZED_KEYS FILE FORMAT described in
-.Xr sshd 8 .
+.Xr sshd 1M .
 Each line of the file contains the following space-separated fields:
 principals, options, keytype, base64-encoded key.
 Empty lines and lines starting with a
@@ -1119,7 +1117,7 @@ Empty lines and lines starting with a
 are ignored as comments.
 .Pp
 The principals field is a pattern-list (see PATTERNS in
-.Xr ssh_config 5 )
+.Xr ssh_config 4 )
 consisting of one or more comma-separated USER@DOMAIN identity patterns
 that are accepted for signing.
 When verifying, the identity presented via the
@@ -1199,14 +1197,14 @@ There is no need to keep the contents of this file secret.
 .It Pa /etc/moduli
 Contains Diffie-Hellman groups used for DH-GEX.
 The file format is described in
-.Xr moduli 5 .
+.Xr moduli 4 .
 .El
 .Sh SEE ALSO
 .Xr ssh 1 ,
 .Xr ssh-add 1 ,
 .Xr ssh-agent 1 ,
-.Xr moduli 5 ,
-.Xr sshd 8
+.Xr moduli 4 ,
+.Xr sshd 1M
 .Rs
 .%R RFC 4716
 .%T "The Secure Shell (SSH) Public Key File Format"

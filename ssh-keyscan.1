@@ -28,7 +28,7 @@ It was designed to aid in building and verifying
 .Pa ssh_known_hosts
 files,
 the format of which is documented in
-.Xr sshd 8 .
+.Xr sshd 1M .
 .Nm
 provides a minimal interface suitable for use by shell and perl
 scripts.
@@ -39,7 +39,7 @@ parallel, so it is very efficient.
 The keys from a domain of 1,000
 hosts can be collected in tens of seconds, even when some of those
 hosts are down or do not run
-.Xr sshd 8 .
+.Xr sshd 1M .
 For scanning, one does not need
 login access to the machines that are being scanned, nor does the
 scanning process involve any encryption.
@@ -82,7 +82,7 @@ Hash all hostnames and addresses in the output.
 Hashed names may be used normally by
 .Xr ssh 1
 and
-.Xr sshd 8 ,
+.Xr sshd 1M ,
 but they do not reveal identifying information should the file's contents
 be disclosed.
 .It Fl p Ar port
@@ -144,7 +144,7 @@ $ ssh-keyscan -t rsa,dsa,ecdsa,ed25519 -f ssh_hosts | \e
 .Ed
 .Sh SEE ALSO
 .Xr ssh 1 ,
-.Xr sshd 8
+.Xr sshd 1M
 .Rs
 .%D 2006
 .%R RFC 4255
