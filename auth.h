@@ -95,6 +95,10 @@ struct Authctxt {
 
 	/* Information exposed to session */
 	struct sshbuf	*session_info;	/* Auth info for environment */
+
+#ifdef PAM_ENHANCEMENT
+	char		*authmethod_name;
+#endif
 };
 
 /*
