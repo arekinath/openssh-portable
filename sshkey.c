@@ -116,6 +116,7 @@ static const struct keytype keytypes[] = {
 	{ "ssh-dss-cert-v00@openssh.com", "DSA-CERT-V00",
 	    KEY_DSA_CERT_V00, 0, 1 },
 #endif /* WITH_OPENSSL */
+	{ "null", "null", KEY_NULL, 0, 0 },
 	{ NULL, NULL, -1, -1, 0 }
 };
 
