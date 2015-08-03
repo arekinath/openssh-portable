@@ -834,6 +834,11 @@ The default is
 Specifies whether user authentication based on GSSAPI is allowed.
 The default on Solaris is
 .Dq yes .
+.It Cm GSSAPIKeyExchange
+Specifies whether key exchange based on GSSAPI may be used. When using
+GSSAPI key exchange the server need not have a host key.
+The default on Solaris is
+.Dq yes .
 .It Cm GSSAPIDelegateCredentials
 Forward (delegate) credentials to the server.
 The default is

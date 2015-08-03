@@ -26,6 +26,7 @@
 #   HostbasedAuthentication no
 #   GSSAPIAuthentication no
 #   GSSAPIDelegateCredentials no
+#   GSSAPIKeyExchange yes
 #   BatchMode no
 #   CheckHostIP yes
 #   AddressFamily any
