@@ -84,6 +84,9 @@ struct Authctxt {
 #ifdef PAM_ENHANCEMENT
 	char		*authmethod_name;
 #endif
+#ifdef HAVE_PAM_AUSER
+	char		*auser;
+#endif
 };
 /*
  * Every authentication method has to handle authentication requests for
