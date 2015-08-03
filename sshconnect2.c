@@ -165,12 +165,35 @@ ssh_kex2(char *host, struct sockaddr *hostaddr, u_short port)
 	struct kex *kex;
 	int r;
 
+#ifdef GSSAPI
+	char *orig = NULL, *gss = NULL;
+	char *gss_host = NULL;
+#endif
+
 	xxx_host = host;
 	xxx_hostaddr = hostaddr;
 
 	if ((s = kex_names_cat(options.kex_algorithms, "ext-info-c")) == NULL)
 		fatal("%s: kex_names_cat", __func__);
 	myproposal[PROPOSAL_KEX_ALGS] = compat_kex_proposal(s);
+
+#ifdef GSSAPI
+	if (options.gss_keyex) {
+		/* Add the GSSAPI mechanisms currently supported on this 
+		 * client to the key exchange algorithm proposal */
+		orig = myproposal[PROPOSAL_KEX_ALGS];
+
+		gss_host = (char *)get_canonical_hostname(1);
+
+		gss = ssh_gssapi_client_mechanisms(gss_host);
+		if (gss) {
+			debug("Offering GSSAPI proposal: %s", gss);
+			xasprintf(&myproposal[PROPOSAL_KEX_ALGS],
+			    "%s,%s", gss, orig);
+		}
+	}
+#endif
+
 	myproposal[PROPOSAL_ENC_ALGS_CTOS] =
 	    compat_cipher_proposal(options.ciphers);
 	myproposal[PROPOSAL_ENC_ALGS_STOC] =
@@ -199,6 +222,17 @@ ssh_kex2(char *host, struct sockaddr *hostaddr, u_short port)
 		    order_hostkeyalgs(host, hostaddr, port));
 	}
 
+#ifdef GSSAPI
+	/* If we've got GSSAPI algorithms, then we also support the
+	 * 'null' hostkey, as a last resort */
+	if (options.gss_keyex && gss) {
+		orig = myproposal[PROPOSAL_SERVER_HOST_KEY_ALGS];
+		xasprintf(&myproposal[PROPOSAL_SERVER_HOST_KEY_ALGS], 
+		    "%s,null", orig);
+		free(gss);
+	}
+#endif
+
 	if (options.rekey_limit || options.rekey_interval)
 		packet_set_rekey_limits((u_int32_t)options.rekey_limit,
 		    (time_t)options.rekey_interval);
@@ -217,9 +251,22 @@ ssh_kex2(char *host, struct sockaddr *hostaddr, u_short port)
 # endif
 #endif
 	kex->kex[KEX_C25519_SHA256] = kexc25519_client;
+#ifdef GSSAPI
+	if (options.gss_keyex) {
+		kex->kex[KEX_GSS_GRP1_SHA1] = kexgss_client;
+		kex->kex[KEX_GSS_GRP14_SHA1] = kexgss_client;
+		kex->kex[KEX_GSS_GEX_SHA1] = kexgss_client;
+	}
+#endif
 	kex->client_version_string=client_version_string;
 	kex->server_version_string=server_version_string;
 	kex->verify_host_key=&verify_host_key_callback;
+#ifdef GSSAPI
+	if (options.gss_keyex) {
+		kex->gss_deleg_creds = options.gss_deleg_creds;
+		kex->gss_host = gss_host;
+	}
+#endif
 
 	dispatch_run(DISPATCH_BLOCK, &kex->done, active_state);
 
@@ -315,6 +362,7 @@ int	input_gssapi_token(int type, u_int32_t, void *);
 int	input_gssapi_hash(int type, u_int32_t, void *);
 int	input_gssapi_error(int, u_int32_t, void *);
 int	input_gssapi_errtok(int, u_int32_t, void *);
+int	userauth_gsskeyex(Authctxt *authctxt);
 #endif
 
 void	userauth(Authctxt *, char *);
@@ -330,6 +378,11 @@ static char *authmethods_get(void);
 
 Authmethod authmethods[] = {
 #ifdef GSSAPI
+	{"gssapi-keyex",
+		userauth_gsskeyex,
+		NULL,
+		&options.gss_authentication,
+		NULL},
 	{"gssapi-with-mic",
 		userauth_gssapi,
 		NULL,
@@ -678,7 +731,10 @@ userauth_gssapi(Authctxt *authctxt)
 	 * once. */
 
 	if (gss_supported == NULL)
-		gss_indicate_mechs(&min, &gss_supported);
+		if (GSS_ERROR(gss_indicate_mechs(&min, &gss_supported))) {
+			gss_supported = NULL;
+			return 0;
+		}
 
 	/* Check to see if the mechanism is usable before we offer it */
 	while (mech < gss_supported->count && !ok) {
@@ -782,8 +838,8 @@ input_gssapi_response(int type, u_int32_t plen, void *ctxt)
 {
 	Authctxt *authctxt = ctxt;
 	Gssctxt *gssctxt;
-	int oidlen;
-	char *oidv;
+	u_int oidlen;
+	u_char *oidv;
 
 	if (authctxt == NULL)
 		fatal("input_gssapi_response: no authentication context");
@@ -896,6 +952,48 @@ input_gssapi_error(int type, u_int32_t plen, void *ctxt)
 	free(lang);
 	return 0;
 }
+
+int
+userauth_gsskeyex(Authctxt *authctxt)
+{
+	Buffer b;
+	gss_buffer_desc gssbuf;
+	gss_buffer_desc mic = GSS_C_EMPTY_BUFFER;
+	OM_uint32 ms;
+
+	static int attempt = 0;
+	if (attempt++ >= 1)
+		return (0);
+
+	if (gss_kex_context == NULL) {
+		debug("No valid Key exchange context"); 
+		return (0);
+	}
+
+	ssh_gssapi_buildmic(&b, authctxt->server_user, authctxt->service,
+	    "gssapi-keyex");
+
+	gssbuf.value = buffer_ptr(&b);
+	gssbuf.length = buffer_len(&b);
+
+	if (GSS_ERROR(ssh_gssapi_sign(gss_kex_context, &gssbuf, &mic))) {
+		buffer_free(&b);
+		return (0);
+	}
+
+	packet_start(SSH2_MSG_USERAUTH_REQUEST);
+	packet_put_cstring(authctxt->server_user);
+	packet_put_cstring(authctxt->service);
+	packet_put_cstring(authctxt->method->name);
+	packet_put_string(mic.value, mic.length);
+	packet_send();
+
+	buffer_free(&b);
+	gss_release_buffer(&ms, &mic);
+
+	return (1);
+}
+
 #endif /* GSSAPI */
 
 int

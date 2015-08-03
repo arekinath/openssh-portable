@@ -54,6 +54,10 @@
 #include "sshbuf.h"
 #include "digest.h"
 
+#ifdef GSSAPI
+#include "ssh-gss.h"
+#endif
+
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
 # if defined(HAVE_EVP_SHA256)
 # define evp_ssh_sha256 EVP_sha256
@@ -107,6 +111,11 @@ static const struct kexalg kexalgs[] = {
 #if defined(HAVE_EVP_SHA256) || !defined(WITH_OPENSSL)
 	{ KEX_CURVE25519_SHA256, KEX_C25519_SHA256, 0, SSH_DIGEST_SHA256 },
 #endif /* HAVE_EVP_SHA256 || !WITH_OPENSSL */
+#ifdef GSSAPI
+	{ KEX_GSS_GEX_SHA1_ID, KEX_GSS_GEX_SHA1, 0, SSH_DIGEST_SHA1 },
+	{ KEX_GSS_GRP1_SHA1_ID, KEX_GSS_GRP1_SHA1, 0, SSH_DIGEST_SHA1 },
+	{ KEX_GSS_GRP14_SHA1_ID, KEX_GSS_GRP14_SHA1, 0, SSH_DIGEST_SHA1 },
+#endif
 	{ NULL, -1, -1, -1},
 };
 
@@ -138,7 +147,7 @@ kex_alg_by_name(const char *name)
 	const struct kexalg *k;
 
 	for (k = kexalgs; k->name != NULL; k++) {
-		if (strcmp(k->name, name) == 0)
+		if (strncmp(k->name, name, strlen(k->name)) == 0)
 			return k;
 	}
 	return NULL;
