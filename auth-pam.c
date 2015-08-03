@@ -1083,12 +1083,19 @@ do_pam_setcred(int init)
 		sshpam_cred_established = 1;
 		return;
 	}
+
+#ifdef PAM_BUGFIX
+	/* Server will fatal out when pam_setcred() failed. */
+	fatal("PAM: pam_setcred(): %s", pam_strerror(sshpam_handle,
+	    sshpam_err));
+#else /* orig */
 	if (sshpam_authenticated)
 		fatal("PAM: pam_setcred(): %s",
 		    pam_strerror(sshpam_handle, sshpam_err));
 	else
 		debug("PAM: pam_setcred(): %s",
 		    pam_strerror(sshpam_handle, sshpam_err));
+#endif /* PAM_BUGFIX */
 }
 
 static int
@@ -1181,10 +1188,16 @@ do_pam_session(void)
 	if (sshpam_err == PAM_SUCCESS)
 		sshpam_session_open = 1;
 	else {
+#ifdef PAM_BUGFIX
+		/* Server will fatal out when pam_open_session() failed */
+		fatal("PAM: pam_open_session(): %s",
+		    pam_strerror(sshpam_handle, sshpam_err));
+#else /* orig */
 		sshpam_session_open = 0;
 		disable_forwarding();
 		error("PAM: pam_open_session(): %s",
 		    pam_strerror(sshpam_handle, sshpam_err));
+#endif /* PAM_BUGFIX */
 	}
 
 }
