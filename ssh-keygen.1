@@ -178,9 +178,7 @@ key in
 .Pa ~/.ssh/id_ed25519
 or
 .Pa ~/.ssh/id_rsa .
-Additionally, the system administrator may use this to generate host keys,
-as seen in
-.Pa /etc/rc .
+Additionally, the system administrator may use this to generate host keys.
 .Pp
 Normally this program generates the key and asks for a file in which
 to store the private key.
@@ -228,7 +226,7 @@ for which host keys
 do not exist, generate the host keys with the default key file path,
 an empty passphrase, default bits for the key type, and default comment.
 This is used by
-.Pa /etc/rc
+.Pa /lib/svc/method/sshd
 to generate new host keys.
 .It Fl a Ar rounds
 When saving a new-format private key (i.e. an ed25519 key or any SSH protocol

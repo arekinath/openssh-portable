@@ -35,7 +35,7 @@
 .\"
 .\" $OpenBSD: sshd_config.5,v 1.220 2016/02/17 08:57:34 djm Exp $
 .Dd $Mdocdate: February 17 2016 $
-.Dt SSHD_CONFIG 5
+.Dt SSHD_CONFIG 4
 .Os
 .Sh NAME
 .Nm sshd_config
@@ -43,7 +43,7 @@
 .Sh SYNOPSIS
 .Nm /etc/ssh/sshd_config
 .Sh DESCRIPTION
-.Xr sshd 8
+.Xr sshd 1M
 reads configuration data from
 .Pa /etc/ssh/sshd_config
 (or the file specified with
@@ -68,7 +68,7 @@ the session's
 See
 .Cm SendEnv
 in
-.Xr ssh_config 5
+.Xr ssh_config 4
 for how to configure the client.
 The
 .Ev TERM
@@ -88,7 +88,7 @@ For this reason, care should be taken in the use of this directive.
 The default is not to accept any environment variables.
 .It Cm AddressFamily
 Specifies which address family should be used by
-.Xr sshd 8 .
+.Xr sshd 1M .
 Valid arguments are
 .Dq any ,
 .Dq inet
@@ -121,7 +121,7 @@ and finally
 .Cm AllowGroups .
 .Pp
 See PATTERNS in
-.Xr ssh_config 5
+.Xr ssh_config 4
 for more information on patterns.
 .It Cm AllowTcpForwarding
 Specifies whether TCP forwarding is permitted.
@@ -181,7 +181,7 @@ and finally
 .Cm AllowGroups .
 .Pp
 See PATTERNS in
-.Xr ssh_config 5
+.Xr ssh_config 4
 for more information on patterns.
 .It Cm AuthenticationMethods
 Specifies the authentication methods that must be successfully completed
@@ -249,7 +249,7 @@ will be supplied.
 .Pp
 The program should produce on standard output zero or
 more lines of authorized_keys output (see AUTHORIZED_KEYS in
-.Xr sshd 8 ) .
+.Xr sshd 1M ) .
 If a key supplied by AuthorizedKeysCommand does not successfully authenticate
 and authorize the user then public key authentication continues using the usual
 .Cm AuthorizedKeysFile
@@ -272,7 +272,7 @@ for user authentication.
 The format is described in the
 AUTHORIZED_KEYS FILE FORMAT
 section of
-.Xr sshd 8 .
+.Xr sshd 1M .
 .Cm AuthorizedKeysFile
 may contain tokens of the form %T which are substituted during connection
 setup.
@@ -334,7 +334,7 @@ this file lists names, one of which must appear in the certificate for it
 to be accepted for authentication.
 Names are listed one per line preceded by key options (as described
 in AUTHORIZED_KEYS FILE FORMAT in
-.Xr sshd 8 ) .
+.Xr sshd 1M ) .
 Empty lines and comments starting with
 .Ql #
 are ignored.
@@ -364,7 +364,7 @@ and is not consulted for certification authorities trusted via
 though the
 .Cm principals=
 key option offers a similar facility (see
-.Xr sshd 8
+.Xr sshd 1M
 for details).
 .It Cm Banner
 The contents of the specified file are sent to the remote user before
@@ -388,7 +388,7 @@ At session startup
 checks that all components of the pathname are root-owned directories
 which are not writable by any other user or group.
 After the chroot,
-.Xr sshd 8
+.Xr sshd 1M
 changes the working directory to the user's home directory.
 .Pp
 The pathname may contain the following tokens that are expanded at runtime once
@@ -493,7 +493,7 @@ with an argument of
 .It Cm ClientAliveCountMax
 Sets the number of client alive messages (see below) which may be
 sent without
-.Xr sshd 8
+.Xr sshd 1M
 receiving any messages back from the client.
 If this threshold is reached while client alive messages are being sent,
 sshd will disconnect the client, terminating the session.
@@ -519,7 +519,7 @@ will be disconnected after approximately 45 seconds.
 .It Cm ClientAliveInterval
 Sets a timeout interval in seconds after which if no data has been received
 from the client,
-.Xr sshd 8
+.Xr sshd 1M
 will send a message through the encrypted
 channel to request a response from the client.
 The default
@@ -549,7 +549,7 @@ and finally
 .Cm AllowGroups .
 .Pp
 See PATTERNS in
-.Xr ssh_config 5
+.Xr ssh_config 4
 for more information on patterns.
 .It Cm DenyUsers
 This keyword can be followed by a list of user name patterns, separated
@@ -568,7 +568,7 @@ and finally
 .Cm AllowGroups .
 .Pp
 See PATTERNS in
-.Xr ssh_config 5
+.Xr ssh_config 4
 for more information on patterns.
 .It Cm FingerprintHash
 Specifies the hash algorithm used when logging key fingerprints.
@@ -603,7 +603,7 @@ The default is
 Specifies whether remote hosts are allowed to connect to ports
 forwarded for the client.
 By default,
-.Xr sshd 8
+.Xr sshd 1M
 binds remote port forwardings to the loopback address.
 This prevents other remote hosts from connecting to forwarded ports.
 .Cm GatewayPorts
@@ -684,7 +684,7 @@ files during
 A setting of
 .Dq yes
 means that
-.Xr sshd 8
+.Xr sshd 1M
 uses the name supplied by the client rather than
 attempting to resolve the name from the TCP connection itself.
 The default is
@@ -695,7 +695,7 @@ The certificate's public key must match a private host key already specified
 by
 .Cm HostKey .
 The default behaviour of
-.Xr sshd 8
+.Xr sshd 1M
 is not to load any certificates.
 .It Cm HostKey
 Specifies a file containing a private host key
@@ -711,12 +711,12 @@ and
 for protocol version 2.
 .Pp
 Note that
-.Xr sshd 8
+.Xr sshd 1M
 will refuse to use a file if it is group/world-accessible
 and that the
 .Cm HostKeyAlgorithms
 option restricts which of the keys are actually used by
-.Xr sshd 8 .
+.Xr sshd 1M .
 .Pp
 It is possible to have multiple host key files.
 .Dq rsa1
@@ -777,7 +777,7 @@ The default is
 .Dq yes .
 .It Cm IgnoreUserKnownHosts
 Specifies whether
-.Xr sshd 8
+.Xr sshd 1M
 should ignore the user's
 .Pa ~/.ssh/known_hosts
 during
@@ -912,7 +912,7 @@ If the value is 0, the key is never regenerated.
 The default is 3600 (seconds).
 .It Cm ListenAddress
 Specifies the local addresses
-.Xr sshd 8
+.Xr sshd 1M
 should listen on.
 The following forms may be used:
 .Pp
@@ -952,7 +952,7 @@ If the value is 0, there is no time limit.
 The default is 120 seconds.
 .It Cm LogLevel
 Gives the verbosity level that is used when logging messages from
-.Xr sshd 8 .
+.Xr sshd 1M .
 The possible values are:
 QUIET, FATAL, ERROR, INFO, VERBOSE, DEBUG, DEBUG1, DEBUG2, and DEBUG3.
 The default is INFO.
@@ -1057,7 +1057,7 @@ and
 The match patterns may consist of single entries or comma-separated
 lists and may use the wildcard and negation operators described in the
 PATTERNS section of
-.Xr ssh_config 5 .
+.Xr ssh_config 4 .
 .Pp
 The patterns in an
 .Cm Address
@@ -1156,7 +1156,7 @@ Alternatively, random early drop can be enabled by specifying
 the three colon separated values
 .Dq start:rate:full
 (e.g. "10:30:60").
-.Xr sshd 8
+.Xr sshd 1M
 will refuse connection attempts with a probability of
 .Dq rate/100
 (30%)
@@ -1276,7 +1276,7 @@ and
 options in
 .Pa ~/.ssh/authorized_keys
 are processed by
-.Xr sshd 8 .
+.Xr sshd 1M .
 The default is
 .Dq no .
 Enabling environment processing may enable users to bypass access
@@ -1297,7 +1297,7 @@ The default is
 .Pa /var/run/sshd.pid .
 .It Cm Port
 Specifies the port number that
-.Xr sshd 8
+.Xr sshd 1M
 listens on.
 The default is 22.
 Multiple options of this type are permitted.
@@ -1305,14 +1305,14 @@ See also
 .Cm ListenAddress .
 .It Cm PrintLastLog
 Specifies whether
-.Xr sshd 8
+.Xr sshd 1M
 should print the date and time of the last user login when a user logs
 in interactively.
 On Solaris this option is always ignored since pam_unix_session(5)
 reports the last login time.
 .It Cm PrintMotd
 Specifies whether
-.Xr sshd 8
+.Xr sshd 1M
 should print
 .Pa /etc/motd
 when a user logs in interactively.
@@ -1323,7 +1323,7 @@ The default is
 .Dq yes .
 .It Cm Protocol
 Specifies the protocol versions
-.Xr sshd 8
+.Xr sshd 1M
 supports.
 The possible values are
 .Sq 1
@@ -1450,7 +1450,7 @@ The default is
 .Dq no .
 .It Cm StrictModes
 Specifies whether
-.Xr sshd 8
+.Xr sshd 1M
 should check file modes and ownership of the
 user's files and home directory before accepting login.
 This is normally desirable because novices sometimes accidentally leave their
@@ -1483,7 +1483,7 @@ to force a different filesystem root on clients.
 By default no subsystems are defined.
 .It Cm SyslogFacility
 Gives the facility code that is used when logging messages from
-.Xr sshd 8 .
+.Xr sshd 1M .
 The possible values are: DAEMON, USER, AUTH, LOCAL0, LOCAL1, LOCAL2,
 LOCAL3, LOCAL4, LOCAL5, LOCAL6, LOCAL7.
 The default is AUTH.
@@ -1526,7 +1526,7 @@ For more details on certificates, see the CERTIFICATES section in
 .Xr ssh-keygen 1 .
 .It Cm UseDNS
 Specifies whether
-.Xr sshd 8
+.Xr sshd 1M
 should look up the remote host name, and to check that
 the resolved host name for the remote IP address maps back to the
 very same IP address.
@@ -1580,13 +1580,13 @@ or
 If
 .Cm UsePAM
 is enabled, you will not be able to run
-.Xr sshd 8
+.Xr sshd 1M
 as a non-root user.
 The default is
 .Dq no .
 .It Cm UsePrivilegeSeparation
 Specifies whether
-.Xr sshd 8
+.Xr sshd 1M
 separates privileges by creating an unprivileged child process
 to deal with incoming network traffic.
 After successful authentication, another process will be created that has
@@ -1613,7 +1613,7 @@ The default is
 .Dq none .
 .It Cm X11DisplayOffset
 Specifies the first display number available for
-.Xr sshd 8 Ns 's
+.Xr sshd 1M Ns 's
 X11 forwarding.
 This prevents sshd from interfering with real X11 servers.
 The default is 10.
@@ -1628,7 +1628,7 @@ The default is
 .Pp
 When X11 forwarding is enabled, there may be additional exposure to
 the server and to client displays if the
-.Xr sshd 8
+.Xr sshd 1M
 proxy display is configured to listen on the wildcard address (see
 .Cm X11UseLocalhost
 below), though this is not the default.
@@ -1639,7 +1639,7 @@ display server may be exposed to attack when the SSH client requests
 forwarding (see the warnings for
 .Cm ForwardX11
 in
-.Xr ssh_config 5 ) .
+.Xr ssh_config 4 ) .
 A system administrator may have a stance in which they want to
 protect clients that may expose themselves to attack by unwittingly
 requesting X11 forwarding, which can warrant a
@@ -1653,7 +1653,7 @@ X11 forwarding is automatically disabled if
 is enabled.
 .It Cm X11UseLocalhost
 Specifies whether
-.Xr sshd 8
+.Xr sshd 1M
 should bind the X11 forwarding server to the loopback address or to
 the wildcard address.
 By default,
@@ -1686,7 +1686,7 @@ The default is
 .Pa /usr/X11R6/bin/xauth .
 .El
 .Sh TIME FORMATS
-.Xr sshd 8
+.Xr sshd 1M
 command-line arguments and configuration file options that specify time
 may be expressed using a sequence of the form:
 .Sm off
@@ -1730,12 +1730,12 @@ Time format examples:
 .Bl -tag -width Ds
 .It Pa /etc/ssh/sshd_config
 Contains configuration data for
-.Xr sshd 8 .
+.Xr sshd 1M .
 This file should be writable by root only, but it is recommended
 (though not necessary) that it be world-readable.
 .El
 .Sh SEE ALSO
-.Xr sshd 8 ,
+.Xr sshd 1M ,
 .Xr pam_unix_session 5
 .Sh AUTHORS
 OpenSSH is a derivative of the original and free
