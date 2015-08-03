@@ -291,7 +291,16 @@ install-nokeys: $(CONFIGFILES) $(MANPAGES) $(TARGETS) install-files install-sysc
 install-nosysconf: $(CONFIGFILES) $(MANPAGES) $(TARGETS) install-files
 
 check-config:
-	-$(DESTDIR)$(sbindir)/sshd -t -f $(DESTDIR)$(sysconfdir)/sshd_config
+# On Solaris, to workaround OpenSSH's unlucky mixing of 'building ssh' and
+# 'running ssh', on build machine the following requisites shouldn't be
+# enforced:
+#     1) existence of privsep user sshd
+#     2) existence of privsep directory /var/empty
+#     3) read permissions for /etc/ssh/ssh_host_[rsa,dsa]_key 
+#
+#	-$(DESTDIR)$(sbindir)/sshd -t -f $(DESTDIR)$(sysconfdir)/sshd_config
+#
+	@echo 'Oracle Solaris: skipping check-config'
 
 install-files:
 	$(srcdir)/mkinstalldirs $(DESTDIR)$(bindir)
