@@ -101,7 +101,7 @@ SSHOBJS= ssh.o readconf.o clientloop.o sshtty.o \
 	roaming_common.o roaming_client.o
 
 SSHDOBJS=sshd.o auth-rhosts.o auth-passwd.o auth-rsa.o auth-rh-rsa.o \
-	audit.o audit-bsm.o audit-linux.o platform.o \
+	audit.o audit-bsm.o audit-linux.o audit-solaris.o platform.o \
 	sshpty.o sshlogin.o servconf.o serverloop.o \
 	auth.o auth1.o auth2.o auth-options.o session.o \
 	auth-chall.o auth2-chall.o groupaccess.o \
