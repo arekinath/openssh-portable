@@ -2146,6 +2146,11 @@ main(int ac, char **av)
 
 	sshd_exchange_identification(sock_in, sock_out);
 
+#ifdef PAM_ENHANCEMENT
+	if (!compat20)
+	        options.pam_service_per_authmethod = 0;
+#endif
+
 	/* In inetd mode, generate ephemeral key only for proto 1 connections */
 	if (!compat20 && inetd_flag && sensitive_data.server_key == NULL)
 		generate_ephemeral_server_key();

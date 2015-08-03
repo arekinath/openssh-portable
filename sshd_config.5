@@ -1044,6 +1044,21 @@ The probability increases linearly and all connection attempts
 are refused if the number of unauthenticated connections reaches
 .Dq full
 (60).
+.It Cm PAMServiceName
+Specifies the PAM service name for the PAM session. The PAMServiceName and 
+PAMServicePrefix options are mutually exclusive and if both set, sshd does not
+start. If this option is set the service name is the same for all user 
+authentication methods. The option has no default value. See PAMServicePrefix 
+for more information.
+.It Cm PAMServicePrefix
+Specifies the PAM service name prefix for service names used for individual 
+user authentication methods. The default is sshd. The PAMServiceName and 
+PAMServicePrefix options are mutually exclusive and if both set, sshd does not 
+start.
+.Pp
+For example, if this option is set to admincli, the service name for the 
+keyboard-interactive authentication method is admincli-kbdint instead of the 
+default sshd-kbdint.
 .It Cm PasswordAuthentication
 Specifies whether password authentication is allowed.
 The default is
@@ -1427,8 +1442,7 @@ If
 is enabled, you will not be able to run
 .Xr sshd 1M
 as a non-root user.
-The default is
-.Dq no .
+On Solaris, the option is always enabled.
 .It Cm UsePrivilegeSeparation
 Specifies whether
 .Xr sshd 1M
