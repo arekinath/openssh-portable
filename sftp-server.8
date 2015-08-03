@@ -23,7 +23,7 @@
 .\" THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 .\"
 .Dd $Mdocdate: December 11 2014 $
-.Dt SFTP-SERVER 8
+.Dt SFTP-SERVER 1M
 .Os
 .Sh NAME
 .Nm sftp-server
@@ -47,7 +47,7 @@ is a program that speaks the server side of SFTP protocol
 to stdout and expects client requests from stdin.
 .Nm
 is not intended to be called directly, but from
-.Xr sshd 8
+.Xr sshd 1M
 using the
 .Cm Subsystem
 option.
@@ -58,7 +58,7 @@ should be specified in the
 .Cm Subsystem
 declaration.
 See
-.Xr sshd_config 5
+.Xr sshd_config 4
 for more information.
 .Pp
 Valid options are:
@@ -71,7 +71,7 @@ The pathname may contain the following tokens that are expanded at runtime:
 and %u is replaced by the username of that user.
 The default is to use the user's home directory.
 This option is useful in conjunction with the
-.Xr sshd_config 5
+.Xr sshd_config 4
 .Cm ChrootDirectory
 option.
 .It Fl e
@@ -152,8 +152,8 @@ establish a logging socket inside the chroot directory.
 .Sh SEE ALSO
 .Xr sftp 1 ,
 .Xr ssh 1 ,
-.Xr sshd_config 5 ,
-.Xr sshd 8
+.Xr sshd_config 4 ,
+.Xr sshd 1M
 .Rs
 .%A T. Ylonen
 .%A S. Lehtinen
