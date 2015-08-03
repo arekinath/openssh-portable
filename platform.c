@@ -145,7 +145,7 @@ platform_setusercontext(struct passwd *pw)
 void
 platform_setusercontext_post_groups(struct passwd *pw)
 {
-#if !defined(HAVE_LOGIN_CAP) && defined(USE_PAM)
+#if !defined(HAVE_LOGIN_CAP) && defined(USE_PAM) && !defined(PAM_SUN_CODEBASE)
 	/*
 	 * PAM credentials may take the form of supplementary groups.
 	 * These will have been wiped by the above initgroups() call.
