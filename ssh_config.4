@@ -35,7 +35,7 @@
 .\"
 .\" $OpenBSD: ssh_config.5,v 1.214 2015/07/30 00:01:34 djm Exp $
 .Dd $Mdocdate: July 30 2015 $
-.Dt SSH_CONFIG 5
+.Dt SSH_CONFIG 4
 .Os
 .Sh NAME
 .Nm ssh_config
@@ -568,7 +568,7 @@ then the master connection will remain in the background indefinitely
 .Dq Fl O No exit
 option).
 If set to a time in seconds, or a time in any of the formats documented in
-.Xr sshd_config 5 ,
+.Xr sshd_config 4 ,
 then the backgrounded master connection will automatically terminate
 after it has remained idle (with no client connections) for the
 specified time.
@@ -695,7 +695,7 @@ option is also enabled.
 Specify a timeout for untrusted X11 forwarding
 using the format described in the
 TIME FORMATS section of
-.Xr sshd_config 5 .
+.Xr sshd_config 4 .
 X11 connections received by
 .Xr ssh 1
 after this time will be refused.
@@ -762,7 +762,7 @@ should hash host names and addresses when they are added to
 These hashed names may be used normally by
 .Xr ssh 1
 and
-.Xr sshd 8 ,
+.Xr sshd 1M ,
 but they do not reveal identifying information should the file's contents
 be disclosed.
 The default is
@@ -1286,7 +1286,7 @@ depending on the cipher.
 The optional second value is specified in seconds and may use any of the
 units documented in the
 TIME FORMATS section of
-.Xr sshd_config 5 .
+.Xr sshd_config 4 .
 The default value for
 .Cm RekeyLimit
 is
@@ -1330,7 +1330,7 @@ Specifying a remote
 will only succeed if the server's
 .Cm GatewayPorts
 option is enabled (see
-.Xr sshd_config 5 ) .
+.Xr sshd_config 4 ) .
 .It Cm RequestTTY
 Specifies whether to request a pseudo-tty for the session.
 The argument may be one of:
@@ -1396,7 +1396,7 @@ pseudo-terminal is requested as it is required by the protocol.
 Refer to
 .Cm AcceptEnv
 in
-.Xr sshd_config 5
+.Xr sshd_config 4
 for how to configure the server.
 Variables are specified by name, which may contain wildcard characters.
 Multiple environment variables may be separated by whitespace or spread
