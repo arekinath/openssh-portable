@@ -85,7 +85,7 @@ The final usage format allows for automated sessions using the
 option.
 In such cases, it is necessary to configure non-interactive authentication
 to obviate the need to enter a password at connection time (see
-.Xr sshd 8
+.Xr sshd 1M
 and
 .Xr ssh-keygen 1
 for details).
@@ -179,7 +179,7 @@ Limits the used bandwidth, specified in Kbit/s.
 Can be used to pass options to
 .Nm ssh
 in the format used in
-.Xr ssh_config 5 .
+.Xr ssh_config 4 .
 This is useful for specifying options
 for which there is no separate
 .Nm sftp
@@ -187,7 +187,7 @@ command-line flag.
 For example, to specify an alternate port use:
 .Ic sftp -oPort=24 .
 For full details of the options listed below, and their possible values, see
-.Xr ssh_config 5 .
+.Xr ssh_config 4 .
 .Pp
 .Bl -tag -width Ds -offset indent -compact
 .It AddressFamily
@@ -285,7 +285,7 @@ on the remote host.
 A path is useful for using
 .Nm
 over protocol version 1, or when the remote
-.Xr sshd 8
+.Xr sshd 1M
 does not have an sftp subsystem configured.
 .It Fl v
 Raise logging level.
@@ -615,9 +615,9 @@ Synonym for help.
 .Xr ssh-add 1 ,
 .Xr ssh-keygen 1 ,
 .Xr glob 3 ,
-.Xr ssh_config 5 ,
-.Xr sftp-server 8 ,
-.Xr sshd 8
+.Xr ssh_config 4 ,
+.Xr sftp-server 1M ,
+.Xr sshd 1M
 .Rs
 .%A T. Ylonen
 .%A S. Lehtinen
