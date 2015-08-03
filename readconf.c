@@ -277,6 +277,24 @@ static struct {
 	{ "hostbasedkeytypes", oHostbasedKeyTypes },
 	{ "ignoreunknown", oIgnoreUnknown },
 
+#ifdef DEPRECATE_SUNSSH_OPT
+        /*
+         * On Solaris, to make the transition from SunSSH to OpenSSH as smooth
+         * as possible, we will deprecate SunSSH-only options in OpenSSH.
+         * Therefore, on a system that is running OpenSSH with a deprecated
+         * option from the user's config file (~/.ssh/config), the ssh
+         * connection will proceed without the deprecated option. Note that
+         * this is an interim enhancement to OpenSSH to make the transition
+         * smoother.  If a deprecated SunSSH-only option is migrated to OpenSSH
+         * later, then it will be changed from deprecated to supported.
+         */
+        { "kmfpolicydatabase", oDeprecated },
+        { "kmfpolicyname", oDeprecated },
+        { "trustedanchorkeystore", oDeprecated },
+        { "usefips140", oDeprecated },
+        { "useopensslengine", oDeprecated },
+#endif
+
 	{ NULL, oBadOption }
 };
 
