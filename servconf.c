@@ -180,6 +180,7 @@ initialize_server_options(ServerOptions *options)
 	 */
 	options->pam_service_per_authmethod = 1;
 #endif
+	options->pubkey_plugin = NULL;
 }
 
 /* Returns 1 if a string option is unset or set to "none" or 0 otherwise. */
@@ -454,6 +455,7 @@ typedef enum {
 	sAuthenticationMethods, sHostKeyAgent, sPermitUserRC,
 	sStreamLocalBindMask, sStreamLocalBindUnlink,
 	sAllowStreamLocalForwarding, sFingerprintHash,
+	sPubKeyPlugin,
 	sDeprecated, sUnsupported
 } ServerOpCodes;
 
@@ -628,6 +630,7 @@ static struct {
 	{ "streamlocalbindunlink", sStreamLocalBindUnlink, SSHCFG_ALL },
 	{ "allowstreamlocalforwarding", sAllowStreamLocalForwarding, SSHCFG_ALL },
 	{ "fingerprinthash", sFingerprintHash, SSHCFG_GLOBAL },
+	{ "pubkeyplugin", sPubKeyPlugin, SSHCFG_ALL },
 	{ NULL, sBadOption, 0 }
 };
 
@@ -1948,6 +1951,10 @@ process_server_config_line(ServerOptions *options, char *line,
 			options->pam_service_per_authmethod = 0;
 		}
 		break;
+
+	case sPubKeyPlugin:
+		charptr = &options->pubkey_plugin;
+		goto parse_filename;
 
 	case sDeprecated:
 		logit("%s line %d: Deprecated option %s",
