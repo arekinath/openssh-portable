@@ -22,6 +22,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/*
+ * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+ * Use is subject to license terms.
+ */
 
 #include "includes.h"
 
@@ -42,11 +46,13 @@
 #include <time.h>
 #include <unistd.h>
 #include <limits.h>
+#include <dlfcn.h>
 
 #include "xmalloc.h"
 #include "ssh.h"
 #include "ssh2.h"
 #include "packet.h"
+#include "digest.h"
 #include "buffer.h"
 #include "log.h"
 #include "misc.h"
@@ -73,6 +79,11 @@
 extern ServerOptions options;
 extern u_char *session_id2;
 extern u_int session_id2_len;
+
+static const char *RSA_SYM_NAME = "sshd_user_rsa_key_allowed";
+static const char *ECDSA_SYM_NAME = "sshd_user_ecdsa_key_allowed";
+typedef int (*RSA_SYM)(struct passwd *, RSA *, const char *);
+typedef int (*ECDSA_SYM)(struct passwd *, EC_KEY *, const char *);
 
 static int
 userauth_pubkey(Authctxt *authctxt)
@@ -1030,6 +1041,102 @@ user_key_command_allowed2(struct passwd *user_pw, Key *key)
 	return found_key;
 }
 
+/**
+ * Checks whether or not access is allowed based on a plugin specified
+ * in sshd_config (PubKeyPlugin).
+ *
+ * Note that this expects a symbol in the loaded library that takes
+ * the current user (pwd entry), the current RSA key and it's fingerprint.
+ * The symbol is expected to return 1 on success and 0 on failure.
+ *
+ * While we could optimize this code to dlopen once in the process' lifetime,
+ * sshd is already a slow beast, so this is really not a concern.
+ * The overhead is basically a rounding error compared to everything else, and
+ * it keeps this code minimally invasive.
+ */
+static int
+user_key_allowed_from_plugin(struct passwd *pw, Key *key)
+{
+	RSA_SYM rsa_sym = NULL;
+	ECDSA_SYM ecdsa_sym = NULL;
+	char *fp = NULL;
+	char *argfp = NULL;
+	void *handle = NULL;
+	int success = 0;
+
+	if (options.pubkey_plugin == NULL || pw == NULL || key == NULL ||
+	    (key->type != KEY_RSA && key->type != KEY_RSA1 &&
+	    key->type != KEY_DSA && key->type != KEY_ECDSA))
+		return success;
+
+	handle = dlopen(options.pubkey_plugin, RTLD_NOW);
+	if (handle == NULL) {
+		debug("Unable to open library %s: %s", options.pubkey_plugin,
+		dlerror());
+		goto out;
+	}
+
+	fp = sshkey_fingerprint(key, SSH_DIGEST_MD5, SSH_FP_HEX);
+	if (fp == NULL) {
+		debug("failed to generate fingerprint");
+		goto out;
+	}
+	if (strncmp(fp, "MD5:", 4) != 0) {
+		debug("fingerprint not in MD5:hex format");
+		goto out;
+	}
+	/* give the plugin the string without leading MD5: */
+	argfp = fp + 4;
+
+	switch (key->type) {
+	case KEY_RSA1:
+	case KEY_RSA:
+		rsa_sym = (RSA_SYM)dlsym(handle, RSA_SYM_NAME);
+		if (rsa_sym == NULL) {
+			debug("Unable to resolve symbol %s: %s", RSA_SYM_NAME,
+			dlerror());
+			goto out;
+		}
+		debug2("Invoking %s from %s", RSA_SYM_NAME,
+		    options.pubkey_plugin);
+		success = (*rsa_sym)(pw, key->rsa, argfp);
+		break;
+	case KEY_ECDSA:
+		ecdsa_sym = (ECDSA_SYM)dlsym(handle, ECDSA_SYM_NAME);
+		if (ecdsa_sym == NULL) {
+			debug("Unable to resolve symbol %s: %s", ECDSA_SYM_NAME,
+			dlerror());
+			goto out;
+		}
+		debug2("Invoking %s from %s", ECDSA_SYM_NAME,
+		    options.pubkey_plugin);
+		success = (*ecdsa_sym)(pw, key->ecdsa, argfp);
+		break;
+	default:
+		debug2("user_key_plugins only support RSA and ECDSA keys");
+	}
+
+	debug("sshd_plugin returned: %d", success);
+
+out:
+	if (handle != NULL) {
+		dlclose(handle);
+		ecdsa_sym = NULL;
+		rsa_sym = NULL;
+		handle = NULL;
+	}
+
+	if (success)
+		verbose("Found matching %s key: %s", key_type(key), fp);
+
+	if (fp != NULL) {
+		free(fp);
+		fp = NULL;
+	}
+
+	return success;
+}
+
 /*
  * Check whether key authenticates and authorises the user.
  */
@@ -1046,6 +1153,10 @@ user_key_allowed(struct passwd *pw, Key *key, int auth_attempt)
 
 	success = user_cert_trusted_ca(pw, key);
 	if (success)
+		return success;
+
+	success = user_key_allowed_from_plugin(pw, key);
+	if (success > 0)
 		return success;
 
 	success = user_key_command_allowed2(pw, key);
