@@ -92,9 +92,13 @@ http://www.gnu.org/software/autoconf/
 
 Basic Security Module (BSM):
 
-Native BSM support is know to exist in Solaris from at least 2.5.1,
-FreeBSD 6.1 and OS X.  Alternatively, you may use the OpenBSM
-implementation (http://www.openbsm.org).
+Native BSM support is known to exist in Solaris from at least 2.5.1
+to Solaris 10.  From Solaris 11 the previously documented BSM (libbsm)
+interfaces are no longer public and are unsupported.  While not public
+interfaces, audit-solaris.c implements Solaris Audit from Solaris 11.
+Native BSM support is known to exist in FreeBSD 6.1 and OS X.
+Alternatively, you may use the OpenBSM implementation
+(http://www.openbsm.org).
 
 
 2. Building / Installation
@@ -147,8 +151,9 @@ name).
 There are a few other options to the configure script:
 
 --with-audit=[module] enable additional auditing via the specified module.
-Currently, drivers for "debug" (additional info via syslog) and "bsm"
-(Sun's Basic Security Module) are supported.
+Currently, drivers for "debug" (additional info via syslog), and "bsm"
+(Sun's Legacy Basic Security Module prior to Solaris 11), and "solaris"
+(Sun's Audit infrastructure from Solaris 11) are supported.
 
 --with-pam enables PAM support. If PAM support is compiled in, it must
 also be enabled in sshd_config (refer to the UsePAM directive).
