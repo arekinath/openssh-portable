@@ -399,6 +399,14 @@ userauth_finish(struct ssh *ssh, int authenticated, const char *method,
 #endif
 	}
 
+#ifdef HAVE_PAM_AUSER
+	if (!use_privsep) {
+		do_pam_set_auser(authctxt->auser);
+		free(authctxt->auser);
+		authctxt->auser = NULL;	
+	}
+#endif
+
 	if (authenticated && options.num_auth_methods != 0) {
 
 #if defined(USE_PAM) && defined(PAM_ENHANCEMENT)
