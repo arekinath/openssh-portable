@@ -182,6 +182,7 @@ initialize_server_options(ServerOptions *options)
 	 */
 	options->pam_service_per_authmethod = 1;
 #endif
+	options->pubkey_plugin = NULL;
 }
 
 /* Returns 1 if a string option is unset or set to "none" or 0 otherwise. */
@@ -472,6 +473,7 @@ typedef enum {
 	sAuthenticationMethods, sHostKeyAgent, sPermitUserRC,
 	sStreamLocalBindMask, sStreamLocalBindUnlink,
 	sAllowStreamLocalForwarding, sFingerprintHash,
+	sPubKeyPlugin,
 	sDeprecated, sUnsupported
 } ServerOpCodes;
 
@@ -647,6 +649,7 @@ static struct {
 	{ "streamlocalbindunlink", sStreamLocalBindUnlink, SSHCFG_ALL },
 	{ "allowstreamlocalforwarding", sAllowStreamLocalForwarding, SSHCFG_ALL },
 	{ "fingerprinthash", sFingerprintHash, SSHCFG_GLOBAL },
+	{ "pubkeyplugin", sPubKeyPlugin, SSHCFG_ALL },
 	{ NULL, sBadOption, 0 }
 };
 
@@ -1967,6 +1970,18 @@ process_server_config_line(ServerOptions *options, char *line,
                          */
 			options->pam_service_per_authmethod = 0;
 		}
+		break;
+
+	case sPubKeyPlugin:
+		/*
+		 * Can't use parse_filename, as we need to support plain
+		 * names which dlopen will find on our lib path.
+		 */
+		arg = strdelim(&cp);
+		if (!arg || *arg == '\0')
+			fatal("%s line %d: missing file name.",
+			    filename, linenum);
+		options->pubkey_plugin = xstrdup(arg);
 		break;
 
 	case sDeprecated:
