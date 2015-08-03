@@ -114,6 +114,7 @@ initialize_server_options(ServerOptions *options)
 	options->kerberos_ticket_cleanup = -1;
 	options->kerberos_get_afs_token = -1;
 	options->gss_authentication=-1;
+	options->gss_keyex = -1;
 	options->gss_cleanup_creds = -1;
 	options->password_authentication = -1;
 	options->kbd_interactive_authentication = -1;
@@ -294,6 +295,12 @@ fill_default_server_options(ServerOptions *options)
 #else
 		options->gss_authentication = 0;
 #endif
+	if (options->gss_keyex == -1)
+#ifdef OPTION_DEFAULT_VALUE
+		options->gss_keyex = 1;
+#else
+		options->gss_keyex = 0;
+#endif
 	if (options->gss_cleanup_creds == -1)
 		options->gss_cleanup_creds = 1;
 	if (options->password_authentication == -1)
@@ -422,6 +429,7 @@ typedef enum {
 	sBanner, sUseDNS, sHostbasedAuthentication,
 	sHostbasedUsesNameFromPacketOnly, sHostbasedAcceptedKeyTypes,
 	sClientAliveInterval, sClientAliveCountMax, sAuthorizedKeysFile,
+	sGssKeyEx,
 	sGssAuthentication, sGssCleanupCreds, sAcceptEnv, sPermitTunnel,
 	sMatch, sPermitOpen, sForceCommand, sChrootDirectory,
 	sUsePrivilegeSeparation, sAllowAgentForwarding,
@@ -495,6 +503,7 @@ static struct {
 	{ "afstokenpassing", sUnsupported, SSHCFG_GLOBAL },
 #ifdef GSSAPI
 	{ "gssapiauthentication", sGssAuthentication, SSHCFG_ALL },
+	{ "gssapikeyexchange", sGssKeyEx, SSHCFG_ALL },
 #ifdef USE_GSS_STORE_CRED
 	{ "gssapicleanupcredentials", sUnsupported, SSHCFG_GLOBAL },
 #else /* USE_GSS_STORE_CRED */
@@ -502,6 +511,7 @@ static struct {
 #endif /* USE_GSS_STORE_CRED */
 #else
 	{ "gssapiauthentication", sUnsupported, SSHCFG_ALL },
+	{ "gssapikeyexchange", sUnsupported, SSHCFG_ALL },
 	{ "gssapicleanupcredentials", sUnsupported, SSHCFG_GLOBAL },
 #endif
 	{ "passwordauthentication", sPasswordAuthentication, SSHCFG_ALL },
@@ -1242,6 +1252,10 @@ process_server_config_line(ServerOptions *options, char *line,
 
 	case sGssAuthentication:
 		intptr = &options->gss_authentication;
+		goto parse_flag;
+
+	case sGssKeyEx:
+		intptr = &options->gss_keyex;
 		goto parse_flag;
 
 	case sGssCleanupCreds:
@@ -2234,6 +2248,7 @@ dump_config(ServerOptions *o)
 #endif
 #ifdef GSSAPI
 	dump_cfg_fmtint(sGssAuthentication, o->gss_authentication);
+	dump_cfg_fmtint(sGssKeyEx, o->gss_keyex);
 	dump_cfg_fmtint(sGssCleanupCreds, o->gss_cleanup_creds);
 #endif
 	dump_cfg_fmtint(sPasswordAuthentication, o->password_authentication);

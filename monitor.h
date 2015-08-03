@@ -68,6 +68,9 @@ enum monitor_reqtype {
 #ifdef PAM_ENHANCEMENT
         MONITOR_REQ_AUTHMETHOD = 114,
 #endif        
+#ifdef GSSAPI
+	MONITOR_REQ_GSSSIGN = 130, MONITOR_ANS_GSSSIGN = 131,
+#endif        
 };
 
 struct mm_master;
