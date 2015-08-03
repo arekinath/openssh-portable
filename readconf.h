@@ -176,6 +176,9 @@ typedef struct {
 	char   *known_hosts_command;
 
 	char	*ignored_unknown; /* Pattern list of unknown tokens to ignore */
+#ifdef DISABLE_BANNER
+        int     disable_banner; /* Disable display of banner */
+#endif
 }       Options;
 
 #define SSH_CANONICALISE_NO	0
@@ -210,6 +213,13 @@ typedef struct {
 const char *kex_default_pk_alg(void);
 char	*ssh_connection_hash(const char *thishost, const char *host,
     const char *portstr, const char *user);
+
+#ifdef DISABLE_BANNER
+#define SSH_DISABLEBANNER_NO		0
+#define SSH_DISABLEBANNER_YES		1
+#define SSH_DISABLEBANNER_INEXECMODE	2
+#endif
+
 void     initialize_options(Options *);
 int      fill_default_options(Options *);
 void	 fill_default_options_for_canonicalization(Options *);
