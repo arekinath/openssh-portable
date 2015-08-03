@@ -580,6 +580,29 @@ static struct {
 	{ "pamserviceprefix", sPAMServicePrefix, SSHCFG_GLOBAL },
 	{ "pamservicename", sPAMServiceName, SSHCFG_GLOBAL },
 #endif
+#ifdef DEPRECATE_SUNSSH_OPT
+	/*
+	 * On Solaris, to make the transition from SunSSH to OpenSSH as smooth
+	 * as possible, we will deprecate SunSSH-only options in OpenSSH.
+	 * Therefore on a system having one of the following options in
+	 * /etc/ssh/sshd_config, change to OpenSSH will not result in service
+	 * network/ssh going to maintenance. Instead, a warning will be printed
+	 * to /var/svc/log/network-ssh:default.log. Note that
+	 * this is an interim enhancement to OpenSSH to make the transition
+	 * smoother.  If a deprecated SunSSH-only option is migrated to OpenSSH
+	 * later, then it will be changed from deprecated to supported.
+	 */
+	{ "maxauthtrieslog", sDeprecated, SSHCFG_GLOBAL },
+	{ "lookupclienthostnames", sDeprecated, SSHCFG_GLOBAL },
+	{ "useopensslengine", sDeprecated, SSHCFG_GLOBAL },
+	{ "preuserauthhook", sDeprecated, SSHCFG_ALL},
+	{ "kmfpolicydatabase", sDeprecated, SSHCFG_GLOBAL },
+	{ "kmfpolicyname", sDeprecated, SSHCFG_GLOBAL },
+	{ "trustedanchorkeystore", sDeprecated, SSHCFG_GLOBAL },
+	{ "useunsupportedsshv1", sDeprecated, SSHCFG_GLOBAL },
+	{ "usefips140", sDeprecated, SSHCFG_ALL},
+	{ "gssapistoredelegatedcredentials", sDeprecated, SSHCFG_ALL },
+#endif
 	{ "revokedkeys", sRevokedKeys, SSHCFG_ALL },
 	{ "trustedusercakeys", sTrustedUserCAKeys, SSHCFG_ALL },
 	{ "authorizedprincipalsfile", sAuthorizedPrincipalsFile, SSHCFG_ALL },
