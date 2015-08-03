@@ -949,6 +949,9 @@ mips-sony-bsd|mips-sony-newsos4)
 		],
 	)
 	TEST_SHELL=$SHELL	# let configure find us a capable shell
+	AC_DEFINE([USE_GSS_STORE_CRED], [1], [Use the Solaris-style GSS cred store])
+	AC_DEFINE([GSSAPI_STORECREDS_NEEDS_RUID], [1], [GSSAPI storecreds needs ruid])
+	AC_DEFINE([HAVE_PAM_AUSER], [1], [pam_auser])
 	;;
 *-*-sunos4*)
 	CPPFLAGS="$CPPFLAGS -DSUNOS4"
