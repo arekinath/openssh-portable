@@ -147,6 +147,7 @@ typedef enum {
 	oClearAllForwardings, oNoHostAuthenticationForLocalhost,
 	oEnableSSHKeysign, oRekeyLimit, oVerifyHostKeyDNS, oConnectTimeout,
 	oAddressFamily, oGssAuthentication, oGssDelegateCreds,
+	oGssKeyEx,
 	oServerAliveInterval, oServerAliveCountMax, oIdentitiesOnly,
 	oSendEnv, oControlPath, oControlMaster, oControlPersist,
 	oHashKnownHosts,
@@ -196,9 +197,11 @@ static struct {
 #if defined(GSSAPI)
 	{ "gssapiauthentication", oGssAuthentication },
 	{ "gssapidelegatecredentials", oGssDelegateCreds },
+	{ "gssapikeyexchange", oGssKeyEx },
 #else
 	{ "gssapiauthentication", oUnsupported },
 	{ "gssapidelegatecredentials", oUnsupported },
+	{ "gssapikeyexchange", oUnsupported },
 #endif
 	{ "fallbacktorsh", oDeprecated },
 	{ "usersh", oDeprecated },
@@ -929,6 +932,10 @@ parse_time:
 		intptr = &options->gss_authentication;
 		goto parse_flag;
 
+	case oGssKeyEx:
+		intptr = &options->gss_keyex;
+		goto parse_flag;
+
 	case oGssDelegateCreds:
 		intptr = &options->gss_deleg_creds;
 		goto parse_flag;
@@ -1643,6 +1650,7 @@ initialize_options(Options * options)
 	options->pubkey_authentication = -1;
 	options->challenge_response_authentication = -1;
 	options->gss_authentication = -1;
+	options->gss_keyex = -1;
 	options->gss_deleg_creds = -1;
 	options->password_authentication = -1;
 	options->kbd_interactive_authentication = -1;
@@ -1781,6 +1789,12 @@ fill_default_options(Options * options)
 		options->gss_authentication = 1;
 #else
 		options->gss_authentication = 0;
+#endif
+	if (options->gss_keyex == -1)
+#ifdef OPTION_DEFAULT_VALUE
+		options->gss_keyex = 1;
+#else
+		options->gss_keyex = 0;
 #endif
 	if (options->gss_deleg_creds == -1)
 		options->gss_deleg_creds = 0;
