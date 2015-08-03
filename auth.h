@@ -81,6 +81,9 @@ struct Authctxt {
 
 	struct sshkey	**prev_userkeys;
 	u_int		 nprev_userkeys;
+#ifdef PAM_ENHANCEMENT
+        char            *authmethod_name;
+#endif 
 };
 /*
  * Every authentication method has to handle authentication requests for
