@@ -180,6 +180,18 @@ initialize_server_options(ServerOptions *options)
 	options->fingerprint_hash = -1;
 	options->disable_forwarding = -1;
 	options->expose_userauth_info = -1;
+#ifdef PAM_ENHANCEMENT
+	options->pam_service_name = NULL;
+	options->pam_service_prefix = NULL;
+
+	/*
+	 * Each user method will have its own PAM service by default.
+	 * However, if PAMServiceName is specified or the protocal version
+	 * is not compat20, then there will be only one PAM service for the
+	 * entire user authentication.
+	 */
+	options->pam_service_per_authmethod = 1;
+#endif
 }
 
 /* Returns 1 if a string option is unset or set to "none" or 0 otherwise. */
@@ -406,6 +418,12 @@ fill_default_server_options(ServerOptions *options)
 		options->ip_qos_bulk = IPTOS_DSCP_CS1;
 	if (options->version_addendum == NULL)
 		options->version_addendum = xstrdup("");
+
+#ifdef PAM_ENHANCEMENT
+	if (options->pam_service_prefix == NULL)
+		options->pam_service_prefix = _SSH_PAM_SERVICE_PREFIX;
+#endif
+
 	if (options->fwd_opts.streamlocal_bind_mask == (mode_t)-1)
 		options->fwd_opts.streamlocal_bind_mask = 0177;
 	if (options->fwd_opts.streamlocal_bind_unlink == -1)
@@ -494,6 +512,9 @@ typedef enum {
 	sMatch, sPermitOpen, sPermitListen, sForceCommand, sChrootDirectory,
 	sUsePrivilegeSeparation, sAllowAgentForwarding,
 	sHostCertificate,
+#ifdef PAM_ENHANCEMENT
+	sPAMServicePrefix, sPAMServiceName,
+#endif
 	sRevokedKeys, sTrustedUserCAKeys, sAuthorizedPrincipalsFile,
 	sAuthorizedPrincipalsCommand, sAuthorizedPrincipalsCommandUser,
 	sKexAlgorithms, sCASignatureAlgorithms, sIPQoS, sVersionAddendum,
@@ -635,6 +656,10 @@ static struct {
 	{ "forcecommand", sForceCommand, SSHCFG_ALL },
 	{ "chrootdirectory", sChrootDirectory, SSHCFG_ALL },
 	{ "hostcertificate", sHostCertificate, SSHCFG_GLOBAL },
+#ifdef PAM_ENHANCEMENT
+	{ "pamserviceprefix", sPAMServicePrefix, SSHCFG_GLOBAL },
+	{ "pamservicename", sPAMServiceName, SSHCFG_GLOBAL },
+#endif
 	{ "revokedkeys", sRevokedKeys, SSHCFG_ALL },
 	{ "trustedusercakeys", sTrustedUserCAKeys, SSHCFG_ALL },
 	{ "authorizedprincipalsfile", sAuthorizedPrincipalsFile, SSHCFG_ALL },
@@ -2165,6 +2190,37 @@ process_server_config_line(ServerOptions *options, char *line,
 			    filename, linenum);
 		if (*activep && *charptr == NULL)
 			*charptr = xstrdup(arg);
+		break;
+
+	case sPAMServicePrefix:
+		arg = strdelim(&cp);
+		if (!arg || *arg == '\0')
+			fatal("%s line %d: Missing argument.",
+			    filename, linenum);
+		if (options->pam_service_name != NULL)
+			fatal("%s line %d: PAMServiceName and PAMServicePrefix"
+			    " are mutually exclusive.", filename, linenum);
+		if (options->pam_service_prefix == NULL)
+			options->pam_service_prefix = xstrdup(arg);
+		break;
+
+	case sPAMServiceName:
+		arg = strdelim(&cp);
+		if (!arg || *arg == '\0')
+			fatal("%s line %d: Missing argument.",
+			    filename, linenum);
+		if (options->pam_service_prefix != NULL)
+			fatal("%s line %d: PAMServiceName and PAMServicePrefix"
+			    " are mutually exclusive.", filename, linenum);
+		if (options->pam_service_name == NULL) {
+			options->pam_service_name = xstrdup(arg);
+
+			/*
+			 * When this option is specified, we will not have
+			 * PAM service for each auth method.
+                         */
+			options->pam_service_per_authmethod = 0;
+		}
 		break;
 
 	case sDeprecated:
