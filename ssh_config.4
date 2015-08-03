@@ -643,6 +643,14 @@ If set to a time in seconds, or a time in any of the formats documented in
 then the backgrounded master connection will automatically terminate
 after it has remained idle (with no client connections) for the
 specified time.
+.It Cm DisableBanner
+If set to yes, disables the display of the  banner  message.
+If set to in-exec-mode, disables the display of banner message when in remote 
+command mode only.
+.Pp
+The default value is no, which means that the banner is displayed unless the 
+log level  is  QUIET, FATAL, or ERROR. See also the Banner option in
+.Xr sshd_config 4 . This option applies to protocol version 2 only.
 .It Cm DynamicForward
 Specifies that a TCP port on the local machine be forwarded
 over the secure channel, and the application

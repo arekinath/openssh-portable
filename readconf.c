@@ -151,6 +151,9 @@ typedef enum {
 	oServerAliveInterval, oServerAliveCountMax, oIdentitiesOnly,
 	oSendEnv, oControlPath, oControlMaster, oControlPersist,
 	oHashKnownHosts,
+#ifdef DISABLE_BANNER 
+	oDisableBanner,
+#endif
 	oTunnel, oTunnelDevice, oLocalCommand, oPermitLocalCommand,
 	oVisualHostKey,
 	oKexAlgorithms, oIPQoS, oRequestTTY, oIgnoreUnknown, oProxyUseFdpass,
@@ -258,6 +261,9 @@ static struct {
 	{ "controlmaster", oControlMaster },
 	{ "controlpersist", oControlPersist },
 	{ "hashknownhosts", oHashKnownHosts },
+#ifdef DISABLE_BANNER
+	{ "disablebanner", oDisableBanner },
+#endif
 	{ "tunnel", oTunnel },
 	{ "tunneldevice", oTunnelDevice },
 	{ "localcommand", oLocalCommand },
@@ -785,6 +791,17 @@ static const struct multistate multistate_canonicalizehostname[] = {
 	{ "always",			SSH_CANONICALISE_ALWAYS },
 	{ NULL, -1 }
 };
+
+#ifdef DISABLE_BANNER
+static const struct multistate multistate_disablebanner[] = {
+	{ "true",			SSH_DISABLEBANNER_YES },
+	{ "false",			SSH_DISABLEBANNER_NO },
+	{ "yes",			SSH_DISABLEBANNER_YES },
+	{ "no",				SSH_DISABLEBANNER_NO },
+	{ "in-exec-mode",		SSH_DISABLEBANNER_INEXECMODE },
+	{ NULL, -1 }
+}; 
+#endif
 
 /*
  * Processes a single option line as used in the configuration files. This
@@ -1561,6 +1578,13 @@ parse_keytypes:
 		multistate_ptr = multistate_yesnoaskconfirm;
 		goto parse_multistate;
 
+#ifdef DISABLE_BANNER
+	case oDisableBanner:
+	        intptr = &options->disable_banner;
+                multistate_ptr = multistate_disablebanner;
+                goto parse_multistate; 
+#endif
+
 	case oDeprecated:
 		debug("%s line %d: Deprecated option \"%s\"",
 		    filename, linenum, keyword);
@@ -1732,6 +1756,9 @@ initialize_options(Options * options)
 	options->ip_qos_bulk = -1;
 	options->request_tty = -1;
 	options->proxy_use_fdpass = -1;
+#ifdef DISABLE_BANNER
+	options->disable_banner = -1;
+#endif
 	options->ignored_unknown = NULL;
 	options->num_canonical_domains = 0;
 	options->num_permitted_cnames = 0;
@@ -1917,6 +1944,10 @@ fill_default_options(Options * options)
 		options->canonicalize_fallback_local = 1;
 	if (options->canonicalize_hostname == -1)
 		options->canonicalize_hostname = SSH_CANONICALISE_NO;
+#ifdef DISABLE_BANNER
+	if (options->disable_banner == -1)
+		options->disable_banner = 0;
+#endif
 	if (options->fingerprint_hash == -1)
 		options->fingerprint_hash = SSH_FP_HASH_DEFAULT;
 	if (options->update_hostkeys == -1)

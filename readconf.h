@@ -159,6 +159,9 @@ typedef struct {
 	char   *pubkey_key_types;
 
 	char	*ignored_unknown; /* Pattern list of unknown tokens to ignore */
+#ifdef DISABLE_BANNER
+        int     disable_banner; /* Disable display of banner */
+#endif
 }       Options;
 
 #define SSH_CANONICALISE_NO	0
@@ -183,6 +186,12 @@ typedef struct {
 #define SSH_UPDATE_HOSTKEYS_NO	0
 #define SSH_UPDATE_HOSTKEYS_YES	1
 #define SSH_UPDATE_HOSTKEYS_ASK	2
+
+#ifdef DISABLE_BANNER
+#define SSH_DISABLEBANNER_NO		0
+#define SSH_DISABLEBANNER_YES		1
+#define SSH_DISABLEBANNER_INEXECMODE	2
+#endif
 
 void     initialize_options(Options *);
 void     fill_default_options(Options *);
