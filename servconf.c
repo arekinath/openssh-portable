@@ -265,7 +265,11 @@ fill_default_server_options(ServerOptions *options)
 	if (options->print_lastlog == -1)
 		options->print_lastlog = 1;
 	if (options->x11_forwarding == -1)
+#ifdef OPTION_DEFAULT_VALUE
+		options->x11_forwarding = 1;
+#else
 		options->x11_forwarding = 0;
+#endif
 	if (options->x11_display_offset == -1)
 		options->x11_display_offset = 10;
 	if (options->x11_use_localhost == -1)
@@ -303,7 +307,11 @@ fill_default_server_options(ServerOptions *options)
 	if (options->kerberos_get_afs_token == -1)
 		options->kerberos_get_afs_token = 0;
 	if (options->gss_authentication == -1)
+#ifdef OPTION_DEFAULT_VALUE
+		options->gss_authentication = 1;
+#else
 		options->gss_authentication = 0;
+#endif
 	if (options->gss_cleanup_creds == -1)
 		options->gss_cleanup_creds = 1;
 	if (options->gss_strict_acceptor == -1)

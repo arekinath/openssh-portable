@@ -621,8 +621,8 @@ The default is
 .Dq no .
 .It Cm GSSAPIAuthentication
 Specifies whether user authentication based on GSSAPI is allowed.
-The default is
-.Dq no .
+The default on Solaris is
+.Dq yes .
 .It Cm GSSAPICleanupCredentials
 Specifies whether to automatically destroy the user's credentials cache
 on logout.
@@ -1637,8 +1637,8 @@ The argument must be
 .Dq yes
 or
 .Dq no .
-The default is
-.Dq no .
+The default on Solaris is
+.Dq yes .
 .Pp
 When X11 forwarding is enabled, there may be additional exposure to
 the server and to client displays if the
