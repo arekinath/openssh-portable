@@ -1510,7 +1510,7 @@ AC_ARG_WITH([libedit],
 
 AUDIT_MODULE=none
 AC_ARG_WITH([audit],
-	[  --with-audit=module     Enable audit support (modules=debug,bsm,linux)],
+	[  --with-audit=module     Enable audit support (modules=debug,bsm,linux,solaris)],
 	[
 	  AC_MSG_CHECKING([for supported audit module])
 	  case "$withval" in
@@ -1547,6 +1547,13 @@ AC_ARG_WITH([audit],
 		SSHDLIBS="$SSHDLIBS -laudit"
 		AC_DEFINE([USE_LINUX_AUDIT], [1], [Use Linux audit module])
 		;;
+      solaris)
+        AC_MSG_RESULT([solaris])
+        AUDIT_MODULE=solaris
+        AC_CHECK_HEADERS([bsm/adt.h])
+        SSHDLIBS="$SSHDLIBS -lbsm"
+        AC_DEFINE([USE_SOLARIS_AUDIT], [1], [Use Solaris audit module])
+        ;;
 	  debug)
 		AUDIT_MODULE=debug
 		AC_MSG_RESULT([debug])

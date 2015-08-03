@@ -68,8 +68,8 @@ zlib-devel and pam-devel, on Debian based distros these may be
 libssl-dev, libz-dev and libpam-dev.
 
 
-Solaris
--------
+Prior to Solaris 11
+-------------------
 If you enable BSM auditing on Solaris, you need to update audit_event(4)
 for praudit(1m) to give sensible output.  The following line needs to be
 added to /etc/security/audit_event:
@@ -82,6 +82,9 @@ There is no official registry of 3rd party event numbers, so if this
 number is already in use on your system, you may change it at build time
 by configure'ing --with-cflags=-DAUE_openssh=32801 then rebuilding.
 
+From Solaris 11
+---------------
+Solaris Audit is supported by configuring --with-audit=solaris.
 
 Platforms using PAM
 -------------------
