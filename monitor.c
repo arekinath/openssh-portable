@@ -117,6 +117,9 @@ int mm_answer_sign(struct ssh *, int, struct sshbuf *);
 int mm_answer_pwnamallow(struct ssh *, int, struct sshbuf *);
 int mm_answer_auth2_read_banner(struct ssh *, int, struct sshbuf *);
 int mm_answer_authserv(struct ssh *, int, struct sshbuf *);
+#ifdef PAM_ENHANCEMENT
+int mm_answer_authmethod(struct ssh *, int, struct sshbuf *);
+#endif
 int mm_answer_authpassword(struct ssh *, int, struct sshbuf *);
 int mm_answer_bsdauthquery(struct ssh *, int, struct sshbuf *);
 int mm_answer_bsdauthrespond(struct ssh *, int, struct sshbuf *);
@@ -195,10 +198,17 @@ struct mon_table mon_dispatch_proto20[] = {
     {MONITOR_REQ_SIGN, MON_ONCE, mm_answer_sign},
     {MONITOR_REQ_PWNAM, MON_ONCE, mm_answer_pwnamallow},
     {MONITOR_REQ_AUTHSERV, MON_ONCE, mm_answer_authserv},
+#ifdef PAM_ENHANCEMENT
+    {MONITOR_REQ_AUTHMETHOD, MON_ISAUTH, mm_answer_authmethod},
+#endif
     {MONITOR_REQ_AUTH2_READ_BANNER, MON_ONCE, mm_answer_auth2_read_banner},
     {MONITOR_REQ_AUTHPASSWORD, MON_AUTH, mm_answer_authpassword},
 #ifdef USE_PAM
+#ifdef PAM_ENHANCEMENT
+    {MONITOR_REQ_PAM_START, MON_ISAUTH, mm_answer_pam_start},
+#else
     {MONITOR_REQ_PAM_START, MON_ONCE, mm_answer_pam_start},
+#endif
     {MONITOR_REQ_PAM_ACCOUNT, 0, mm_answer_pam_account},
     {MONITOR_REQ_PAM_INIT_CTX, MON_ONCE, mm_answer_pam_init_ctx},
     {MONITOR_REQ_PAM_QUERY, 0, mm_answer_pam_query},
@@ -305,6 +315,26 @@ monitor_child_preauth(struct ssh *ssh, struct monitor *pmonitor)
 
 		/* Special handling for multiple required authentications */
 		if (options.num_auth_methods != 0) {
+
+#if defined(USE_PAM) && defined(PAM_ENHANCEMENT)
+			/*
+			 * If each userauth has its own PAM service, then PAM
+			 * need to perform account check for this service.
+			 */
+			if (options.use_pam && authenticated &&
+			    options.pam_service_per_authmethod) {
+				struct sshbuf *m;
+
+				if ((m = sshbuf_new()) == NULL)
+					fatal("%s: sshbuf_new failed", __func__);
+				mm_request_receive_expect(pmonitor->m_sendfd,
+				    MONITOR_REQ_PAM_ACCOUNT, m);
+				authenticated = mm_answer_pam_account(
+				    ssh, pmonitor->m_sendfd, m);
+				sshbuf_free(m);
+			}
+#endif
+
 			if (authenticated &&
 			    !auth2_update_methods_lists(authctxt,
 			    auth_method, auth_submethod)) {
@@ -322,8 +352,21 @@ monitor_child_preauth(struct ssh *ssh, struct monitor *pmonitor)
 			    !auth_root_allowed(ssh, auth_method))
 				authenticated = 0;
 #ifdef USE_PAM
+#ifdef PAM_ENHANCEMENT
+                        /*
+                         * PAM needs to perform account checks after auth.
+                         * However, if each userauth has its own PAM service
+                         * and options.num_auth_methods != 0, then no need to
+                         * perform account checking, because it was done
+                         * already.
+                         */
+			if (options.use_pam && authenticated &&
+			    !(options.num_auth_methods != 0 &&
+			    options.pam_service_per_authmethod)) {
+#else
 			/* PAM needs to perform account checks after auth */
 			if (options.use_pam && authenticated) {
+#endif
 				struct sshbuf *m;
 
 				if ((m = sshbuf_new()) == NULL)
@@ -805,6 +848,11 @@ mm_answer_pwnamallow(struct ssh *ssh, int sock, struct sshbuf *m)
 	monitor_permit(mon_dispatch, MONITOR_REQ_AUTHSERV, 1);
 	monitor_permit(mon_dispatch, MONITOR_REQ_AUTH2_READ_BANNER, 1);
 
+#ifdef PAM_ENHANCEMENT
+	/* Allow authmethod information on the auth context */
+	monitor_permit(mon_dispatch, MONITOR_REQ_AUTHMETHOD, 1);
+#endif
+
 #ifdef USE_PAM
 	if (options.use_pam)
 		monitor_permit(mon_dispatch, MONITOR_REQ_PAM_START, 1);
@@ -876,6 +924,29 @@ key_base_type_match(const char *method, const struct sshkey *key,
 	free(ol);
 	return found;
 }
+
+#ifdef PAM_ENHANCEMENT
+int
+mm_answer_authmethod(struct ssh *ssh, int sock, struct sshbuf *m)
+{
+	int rc;
+	Authctxt *authctxt = ssh->authctxt;
+
+	monitor_permit_authentications(1);
+
+	if ((rc = sshbuf_get_cstring(m, &authctxt->authmethod_name, NULL)))
+		return (rc);
+
+	debug3("%s: authmethod_name=%s", __func__, authctxt->authmethod_name);
+
+	if (strlen(authctxt->authmethod_name) == 0) {
+		free(authctxt->authmethod_name);
+		authctxt->authmethod_name = NULL;
+	}
+
+	return (0);
+}
+#endif
 
 int
 mm_answer_authpassword(struct ssh *ssh, int sock, struct sshbuf *m)
