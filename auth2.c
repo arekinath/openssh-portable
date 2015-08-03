@@ -243,9 +243,20 @@ input_userauth_request(int type, u_int32_t seq, void *ctxt)
 			PRIVSEP(audit_event(SSH_INVALID_USER));
 #endif
 		}
+
+
 #ifdef USE_PAM
+#ifdef PAM_ENHANCEMENT
+		/*
+		 * Start PAM here and once only, if each userauth does not
+		 * has its own PAM service.
+		 */
+	        if (options.use_pam && !options.pam_service_per_authmethod)
+			PRIVSEP(start_pam(authctxt));
+#else
 		if (options.use_pam)
 			PRIVSEP(start_pam(authctxt));
+#endif
 #endif
 		setproctitle("%s%s", authctxt->valid ? user : "unknown",
 		    use_privsep ? " [net]" : "");
@@ -277,6 +288,18 @@ input_userauth_request(int type, u_int32_t seq, void *ctxt)
 	/* try to authenticate user */
 	m = authmethod_lookup(authctxt, method);
 	if (m != NULL && authctxt->failures < options.max_authtries) {
+
+#if defined(USE_PAM) && defined(PAM_ENHANCEMENT)
+		/* start PAM service for each userauth */
+                if (options.use_pam && options.pam_service_per_authmethod) {
+       		        if (authctxt->authmethod_name != NULL)
+		                free(authctxt->authmethod_name);
+                        authctxt->authmethod_name = xstrdup(method);
+                        if (use_privsep)
+                                mm_inform_authmethod(method);
+		        PRIVSEP(start_pam(authctxt));
+		}
+#endif
 		debug2("input_userauth_request: try method %s", method);
 		authenticated =	m->userauth(authctxt);
 	}
@@ -295,6 +318,10 @@ userauth_finish(Authctxt *authctxt, int authenticated, const char *method,
 	char *methods;
 	int partial = 0;
 
+#ifdef  PAM_ENHANCEMENT
+        debug3("%s: entering", __func__);
+#endif
+
 	if (!authctxt->valid && authenticated)
 		fatal("INTERNAL ERROR: authenticated invalid user %s",
 		    authctxt->user);
@@ -311,6 +338,25 @@ userauth_finish(Authctxt *authctxt, int authenticated, const char *method,
 	}
 
 	if (authenticated && options.num_auth_methods != 0) {
+
+#if defined(USE_PAM) && defined(PAM_ENHANCEMENT)
+                /*
+                 * If each userauth has its own PAM service, then PAM need to 
+                 * perform account check for this service.
+                 */
+                if (options.use_pam && options.pam_service_per_authmethod &&
+                    !PRIVSEP(do_pam_account())) {
+                        /* if PAM returned a message, send it to the user */
+                        if (buffer_len(&loginmsg) > 0) {
+                                buffer_append(&loginmsg, "\0", 1);
+                                userauth_send_banner(buffer_ptr(&loginmsg));
+                                packet_write_wait();
+                        }
+
+                        fatal("Access denied for user %s by PAM account "
+                            "configuration", authctxt->user);
+                }
+#endif
 		if (!auth2_update_methods_lists(authctxt, method, submethod)) {
 			authenticated = 0;
 			partial = 1;
@@ -324,7 +370,20 @@ userauth_finish(Authctxt *authctxt, int authenticated, const char *method,
 		return;
 
 #ifdef USE_PAM
+
+#ifdef PAM_ENHANCEMENT
+        /*
+         * PAM needs to perform account checks after auth. However, if each
+         * userauth has its own PAM service and options.num_auth_methods != 0,
+         * then no need to perform account checking, because it was done 
+         * already.
+         */
+        if (options.use_pam && authenticated && 
+            !(options.num_auth_methods != 0 &&
+            options.pam_service_per_authmethod)){
+#else
 	if (options.use_pam && authenticated) {
+#endif
 		if (!PRIVSEP(do_pam_account())) {
 			/* if PAM returned a message, send it to the user */
 			if (buffer_len(&loginmsg) > 0) {
@@ -615,5 +674,3 @@ auth2_update_methods_lists(Authctxt *authctxt, const char *method,
 		fatal("%s: method not in AuthenticationMethods", __func__);
 	return 0;
 }
-
-
