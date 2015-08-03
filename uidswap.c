@@ -134,7 +134,7 @@ temporarily_use_uid(struct passwd *pw)
 void
 permanently_drop_suid(uid_t uid)
 {
-#ifndef HAVE_CYGWIN
+#ifndef NO_UID_RESTORATION_TEST
 	uid_t old_uid = getuid();
 #endif
 
@@ -142,7 +142,7 @@ permanently_drop_suid(uid_t uid)
 	if (setresuid(uid, uid, uid) < 0)
 		fatal("setresuid %u: %.100s", (u_int)uid, strerror(errno));
 
-#ifndef HAVE_CYGWIN
+#ifndef NO_UID_RESTORATION_TEST
 	/* Try restoration of UID if changed (test clearing of saved uid) */
 	if (old_uid != uid &&
 	    (setuid(old_uid) != -1 || seteuid(old_uid) != -1))
@@ -199,7 +199,7 @@ restore_uid(void)
 void
 permanently_set_uid(struct passwd *pw)
 {
-#ifndef HAVE_CYGWIN
+#ifndef NO_UID_RESTORATION_TEST
 	uid_t old_uid = getuid();
 	gid_t old_gid = getgid();
 #endif
@@ -227,7 +227,7 @@ permanently_set_uid(struct passwd *pw)
 	if (setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid) < 0)
 		fatal("setresuid %u: %.100s", (u_int)pw->pw_uid, strerror(errno));
 
-#ifndef HAVE_CYGWIN
+#ifndef NO_UID_RESTORATION_TEST
 	/* Try restoration of GID if changed (test clearing of saved gid) */
 	if (old_gid != pw->pw_gid && pw->pw_uid != 0 &&
 	    (setgid(old_gid) != -1 || setegid(old_gid) != -1))
@@ -241,7 +241,7 @@ permanently_set_uid(struct passwd *pw)
 		    (u_int)pw->pw_gid);
 	}
 
-#ifndef HAVE_CYGWIN
+#ifndef NO_UID_RESTORATION_TEST
 	/* Try restoration of UID if changed (test clearing of saved uid) */
 	if (old_uid != pw->pw_uid &&
 	    (setuid(old_uid) != -1 || seteuid(old_uid) != -1))
