@@ -32,7 +32,7 @@ $(OPENBSD): ../config.h
 $(PORTS): ../config.h
 
 libopenbsd-compat.a:  $(COMPAT) $(OPENBSD) $(PORTS)
-	$(AR) rv $@ $(COMPAT) $(OPENBSD) $(PORTS)
+	$(AR) rv $@ $(COMPAT) $(OPENBSD) $(PORTS) ../hash.o ../blocks.o
 	$(RANLIB) $@
 
 clean:

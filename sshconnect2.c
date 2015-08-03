@@ -254,7 +254,9 @@ ssh_kex2(char *host, struct sockaddr *hostaddr, u_short port)
 	kex->kex[KEX_ECDH_SHA2] = kexecdh_client;
 # endif
 #endif
+#ifndef WITHOUT_ED25519
 	kex->kex[KEX_C25519_SHA256] = kexc25519_client;
+#endif /* WITHOUT_ED25519 */
 #ifdef GSSAPI
 	if (options.gss_keyex) {
 		kex->kex[KEX_GSS_GRP1_SHA1] = kexgss_client;

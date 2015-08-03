@@ -57,11 +57,15 @@ enum sshkey_types {
 	KEY_RSA,
 	KEY_DSA,
 	KEY_ECDSA,
+#ifndef WITHOUT_ED25519
 	KEY_ED25519,
+#endif /* WITHOUT_ED25519 */
 	KEY_RSA_CERT,
 	KEY_DSA_CERT,
 	KEY_ECDSA_CERT,
+#ifndef WITHOUT_ED25519
 	KEY_ED25519_CERT,
+#endif /* WITHOUT_ED25519 */
 	KEY_RSA_CERT_V00,
 	KEY_DSA_CERT_V00,
 	KEY_NULL,
@@ -106,13 +110,17 @@ struct sshkey {
 	DSA	*dsa;
 	int	 ecdsa_nid;	/* NID of curve */
 	EC_KEY	*ecdsa;
+#ifndef WITHOUT_ED25519
 	u_char	*ed25519_sk;
 	u_char	*ed25519_pk;
+#endif /* WITHOUT_ED25519 */
 	struct sshkey_cert *cert;
 };
 
+#ifndef WITHOUT_ED25519
 #define	ED25519_SK_SZ	crypto_sign_ed25519_SECRETKEYBYTES
 #define	ED25519_PK_SZ	crypto_sign_ed25519_PUBLICKEYBYTES
+#endif /* WITHOUT_ED25519 */
 
 struct sshkey	*sshkey_new(int);
 int		 sshkey_add_private(struct sshkey *);
@@ -210,11 +218,13 @@ int ssh_ecdsa_sign(const struct sshkey *key, u_char **sigp, size_t *lenp,
 int ssh_ecdsa_verify(const struct sshkey *key,
     const u_char *signature, size_t signaturelen,
     const u_char *data, size_t datalen, u_int compat);
+#ifndef WITHOUT_ED25519
 int ssh_ed25519_sign(const struct sshkey *key, u_char **sigp, size_t *lenp,
     const u_char *data, size_t datalen, u_int compat);
 int ssh_ed25519_verify(const struct sshkey *key,
     const u_char *signature, size_t signaturelen,
     const u_char *data, size_t datalen, u_int compat);
+#endif /* WITHOUT_ED25519 */
 #endif
 
 #if !defined(WITH_OPENSSL)

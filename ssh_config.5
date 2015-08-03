@@ -807,14 +807,8 @@ Specifies the protocol version 2 host key algorithms
 that the client wants to use in order of preference.
 The default for this option is:
 .Bd -literal -offset 3n
-ecdsa-sha2-nistp256-cert-v01@openssh.com,
-ecdsa-sha2-nistp384-cert-v01@openssh.com,
-ecdsa-sha2-nistp521-cert-v01@openssh.com,
-ssh-ed25519-cert-v01@openssh.com,
 ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,
 ssh-rsa-cert-v00@openssh.com,ssh-dss-cert-v00@openssh.com,
-ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,
-ssh-ed25519,ssh-rsa,ssh-dss
 .Ed
 .Pp
 If hostkeys are known for the destination host then this default is modified
@@ -869,14 +863,12 @@ offers many different identities.
 The default is
 .Dq no .
 .It Cm IdentityFile
-Specifies a file from which the user's DSA, ECDSA, Ed25519 or RSA authentication
+Specifies a file from which the user's DSA or RSA authentication
 identity is read.
 The default is
 .Pa ~/.ssh/identity
 for protocol version 1, and
 .Pa ~/.ssh/id_dsa ,
-.Pa ~/.ssh/id_ecdsa ,
-.Pa ~/.ssh/id_ed25519
 and
 .Pa ~/.ssh/id_rsa
 for protocol version 2.
@@ -989,7 +981,6 @@ Specifies the available KEX (Key Exchange) algorithms.
 Multiple algorithms must be comma-separated.
 The default is:
 .Bd -literal -offset indent
-curve25519-sha256@libssh.org,
 ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,
 diffie-hellman-group-exchange-sha256,
 diffie-hellman-group14-sha1,

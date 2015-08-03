@@ -78,7 +78,9 @@ static char *default_files[] = {
 	_PATH_SSH_CLIENT_ID_ECDSA,
 #endif
 #endif /* WITH_OPENSSL */
+#ifndef WITHOUT_ED25519
 	_PATH_SSH_CLIENT_ID_ED25519,
+#endif /* WITHOUT_ED25519 */
 	_PATH_SSH_CLIENT_IDENTITY,
 	NULL
 };

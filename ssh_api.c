@@ -109,7 +109,9 @@ ssh_init(struct ssh **sshp, int is_server, struct kex_params *kex_params)
 		ssh->kex->kex[KEX_ECDH_SHA2] = kexecdh_server;
 # endif
 #endif /* WITH_OPENSSL */
+#ifndef WITHOUT_ED25519
 		ssh->kex->kex[KEX_C25519_SHA256] = kexc25519_server;
+#endif /* WITHOUT_ED25519 */
 		ssh->kex->load_host_public_key=&_ssh_host_public_key;
 		ssh->kex->load_host_private_key=&_ssh_host_private_key;
 		ssh->kex->sign=&_ssh_host_key_sign;
@@ -123,7 +125,9 @@ ssh_init(struct ssh **sshp, int is_server, struct kex_params *kex_params)
 		ssh->kex->kex[KEX_ECDH_SHA2] = kexecdh_client;
 # endif
 #endif /* WITH_OPENSSL */
+#ifndef WITHOUT_ED25519
 		ssh->kex->kex[KEX_C25519_SHA256] = kexc25519_client;
+#endif /* WITHOUT_ED25519 */
 		ssh->kex->verify_host_key =&_ssh_verify_host_key;
 	}
 	*sshp = ssh;

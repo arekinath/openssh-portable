@@ -8,6 +8,7 @@
 
 #ifndef FE25519_H
 #define FE25519_H
+#ifndef WITHOUT_ED25519
 
 #include "crypto_api.h"
 
@@ -67,4 +68,5 @@ void fe25519_invert(fe25519 *r, const fe25519 *x);
 
 void fe25519_pow2523(fe25519 *r, const fe25519 *x);
 
+#endif /* WITHOUT_ED25519 */
 #endif

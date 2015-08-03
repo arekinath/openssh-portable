@@ -1234,8 +1234,10 @@ main(int ac, char **av)
 		sensitive_data.keys[1] = key_load_private_cert(KEY_ECDSA,
 		    _PATH_HOST_ECDSA_KEY_FILE, "", NULL);
 #endif
+#ifndef WITHOUT_ED25519
 		sensitive_data.keys[2] = key_load_private_cert(KEY_ED25519,
 		    _PATH_HOST_ED25519_KEY_FILE, "", NULL);
+#endif /* WITHOUT_ED25519 */
 		sensitive_data.keys[3] = key_load_private_cert(KEY_RSA,
 		    _PATH_HOST_RSA_KEY_FILE, "", NULL);
 		sensitive_data.keys[4] = key_load_private_cert(KEY_DSA,
@@ -1244,8 +1246,10 @@ main(int ac, char **av)
 		sensitive_data.keys[5] = key_load_private_type(KEY_ECDSA,
 		    _PATH_HOST_ECDSA_KEY_FILE, "", NULL, NULL);
 #endif
+#ifndef WITHOUT_ED25519
 		sensitive_data.keys[6] = key_load_private_type(KEY_ED25519,
 		    _PATH_HOST_ED25519_KEY_FILE, "", NULL, NULL);
+#endif /* WITHOUT_ED25519 */
 		sensitive_data.keys[7] = key_load_private_type(KEY_RSA,
 		    _PATH_HOST_RSA_KEY_FILE, "", NULL, NULL);
 		sensitive_data.keys[8] = key_load_private_type(KEY_DSA,
@@ -1262,8 +1266,10 @@ main(int ac, char **av)
 			sensitive_data.keys[1] = key_load_cert(
 			    _PATH_HOST_ECDSA_KEY_FILE);
 #endif
+#ifndef WITHOUT_ED25519
 			sensitive_data.keys[2] = key_load_cert(
 			    _PATH_HOST_ED25519_KEY_FILE);
+#endif /* WITHOUT_ED25519 */
 			sensitive_data.keys[3] = key_load_cert(
 			    _PATH_HOST_RSA_KEY_FILE);
 			sensitive_data.keys[4] = key_load_cert(
@@ -1272,8 +1278,10 @@ main(int ac, char **av)
 			sensitive_data.keys[5] = key_load_public(
 			    _PATH_HOST_ECDSA_KEY_FILE, NULL);
 #endif
+#ifndef WITHOUT_ED25519
 			sensitive_data.keys[6] = key_load_public(
 			    _PATH_HOST_ED25519_KEY_FILE, NULL);
+#endif /* WITHOUT_ED25519 */
 			sensitive_data.keys[7] = key_load_public(
 			    _PATH_HOST_RSA_KEY_FILE, NULL);
 			sensitive_data.keys[8] = key_load_public(

@@ -100,11 +100,13 @@ dns_read_key(u_int8_t *algorithm, u_int8_t *digest_type,
 		if (!*digest_type)
 			*digest_type = SSHFP_HASH_SHA256;
 		break;
+#ifndef WITHOUT_ED25519
 	case KEY_ED25519:
 		*algorithm = SSHFP_KEY_ED25519;
 		if (!*digest_type)
 			*digest_type = SSHFP_HASH_SHA256;
 		break;
+#endif /* WITHOUT_ED25519 */
 	default:
 		*algorithm = SSHFP_KEY_RESERVED; /* 0 */
 		*digest_type = SSHFP_HASH_RESERVED; /* 0 */

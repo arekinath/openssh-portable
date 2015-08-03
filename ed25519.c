@@ -7,6 +7,7 @@
  */
 
 #include "includes.h"
+#ifndef WITHOUT_ED25519
 #include "crypto_api.h"
 
 #include "ge25519.h"
@@ -142,3 +143,4 @@ int crypto_sign_ed25519_open(
   }
   return ret;
 }
+#endif /* WITHOUT_ED25519 */

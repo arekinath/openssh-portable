@@ -803,7 +803,9 @@ list_hostkey_types(void)
 		case KEY_RSA:
 		case KEY_DSA:
 		case KEY_ECDSA:
+#ifndef WITHOUT_ED25519
 		case KEY_ED25519:
+#endif /* WITHOUT_ED25519 */
 			if (buffer_len(&b) > 0)
 				buffer_append(&b, ",", 1);
 			p = key_ssh_name(key);
@@ -820,7 +822,9 @@ list_hostkey_types(void)
 		case KEY_RSA_CERT:
 		case KEY_DSA_CERT:
 		case KEY_ECDSA_CERT:
+#ifndef WITHOUT_ED25519
 		case KEY_ED25519_CERT:
+#endif /* WITHOUT_ED25519 */
 			if (buffer_len(&b) > 0)
 				buffer_append(&b, ",", 1);
 			p = key_ssh_name(key);
@@ -848,7 +852,9 @@ get_hostkey_by_type(int type, int nid, int need_private, struct ssh *ssh)
 		case KEY_RSA_CERT:
 		case KEY_DSA_CERT:
 		case KEY_ECDSA_CERT:
+#ifndef WITHOUT_ED25519
 		case KEY_ED25519_CERT:
+#endif /* WITHOUT_ED25519 */
 			key = sensitive_data.host_certificates[i];
 			break;
 		default:
@@ -1798,7 +1804,9 @@ main(int ac, char **av)
 		case KEY_RSA:
 		case KEY_DSA:
 		case KEY_ECDSA:
+#ifndef WITHOUT_ED25519
 		case KEY_ED25519:
+#endif /* WITHOUT_ED25519 */
 			if (have_agent || key != NULL)
 				sensitive_data.have_ssh2_key = 1;
 			break;
@@ -2644,7 +2652,9 @@ do_ssh2_kex(void)
 	kex->kex[KEX_ECDH_SHA2] = kexecdh_server;
 # endif
 #endif
+#ifndef WITHOUT_ED25519
 	kex->kex[KEX_C25519_SHA256] = kexc25519_server;
+#endif /* WITHOUT_ED25519 */
 #ifdef GSSAPI
 	if (options.gss_keyex) {
 		kex->kex[KEX_GSS_GRP1_SHA1] = kexgss_server;

@@ -27,6 +27,7 @@
 
 #include "includes.h"
 
+#ifndef WITHOUT_ED25519
 #include <sys/types.h>
 
 #include <signal.h>
@@ -126,3 +127,4 @@ kex_c25519_hash(
 #endif
 	return 0;
 }
+#endif /* WITHOUT_ED25519 */

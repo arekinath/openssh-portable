@@ -58,8 +58,6 @@ adds private key identities to the authentication agent,
 When run without arguments, it adds the files
 .Pa ~/.ssh/id_rsa ,
 .Pa ~/.ssh/id_dsa ,
-.Pa ~/.ssh/id_ecdsa ,
-.Pa ~/.ssh/id_ed25519
 and
 .Pa ~/.ssh/identity .
 After loading a private key,
@@ -177,10 +175,6 @@ socket used to communicate with the agent.
 Contains the protocol version 1 RSA authentication identity of the user.
 .It Pa ~/.ssh/id_dsa
 Contains the protocol version 2 DSA authentication identity of the user.
-.It Pa ~/.ssh/id_ecdsa
-Contains the protocol version 2 ECDSA authentication identity of the user.
-.It Pa ~/.ssh/id_ed25519
-Contains the protocol version 2 Ed25519 authentication identity of the user.
 .It Pa ~/.ssh/id_rsa
 Contains the protocol version 2 RSA authentication identity of the user.
 .El

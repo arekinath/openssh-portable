@@ -1391,7 +1391,9 @@ show_other_keys(struct hostkeys *hostkeys, Key *key)
 		KEY_RSA,
 		KEY_DSA,
 		KEY_ECDSA,
+#ifndef WITHOUT_ED25519
 		KEY_ED25519,
+#endif /* WITHOUT_ED25519 */
 		-1
 	};
 	int i, ret = 0;

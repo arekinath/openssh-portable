@@ -90,18 +90,13 @@ Specifies the type of the key to fetch from the scanned hosts.
 The possible values are
 .Dq rsa1
 for protocol version 1 and
-.Dq dsa ,
-.Dq ecdsa ,
-.Dq ed25519 ,
+.Dq dsa 
 or
 .Dq rsa
 for protocol version 2.
 Multiple values may be specified by separating them with commas.
 The default is to fetch
-.Dq rsa ,
-.Dq ecdsa ,
-and
-.Dq ed25519
+.Dq rsa 
 keys.
 .It Fl v
 Verbose mode.
@@ -130,7 +125,7 @@ Output format for RSA1 keys:
 host-or-namelist bits exponent modulus
 .Ed
 .Pp
-Output format for RSA, DSA, ECDSA, and Ed25519 keys:
+Output format for RSA and DSA keys:
 .Bd -literal
 host-or-namelist keytype base64-encoded-key
 .Ed
@@ -138,10 +133,6 @@ host-or-namelist keytype base64-encoded-key
 Where
 .Ar keytype
 is either
-.Dq ecdsa-sha2-nistp256 ,
-.Dq ecdsa-sha2-nistp384 ,
-.Dq ecdsa-sha2-nistp521 ,
-.Dq ssh-ed25519 ,
 .Dq ssh-dss
 or
 .Dq ssh-rsa .
@@ -159,7 +150,7 @@ Find all hosts from the file
 which have new or different keys from those in the sorted file
 .Pa ssh_known_hosts :
 .Bd -literal
-$ ssh-keyscan -t rsa,dsa,ecdsa,ed25519 -f ssh_hosts | \e
+$ ssh-keyscan -t rsa,dsa -f ssh_hosts | \e
 	sort -u - ssh_known_hosts | diff ssh_known_hosts -
 .Ed
 .Sh SEE ALSO

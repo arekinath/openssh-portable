@@ -1937,7 +1937,9 @@ monitor_apply_keystate(struct monitor *pmonitor)
 		kex->kex[KEX_ECDH_SHA2] = kexecdh_server;
 # endif
 #endif /* WITH_OPENSSL */
+#ifndef WITHOUT_ED25519
 		kex->kex[KEX_C25519_SHA256] = kexc25519_server;
+#endif /* WITHOUT_ED25519 */
 #ifdef GSSAPI
 		if (options.gss_keyex) {
 			kex->kex[KEX_GSS_GRP1_SHA1] = kexgss_server;

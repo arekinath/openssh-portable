@@ -569,8 +569,10 @@ ssh_add_identity_constrained(int sock, struct sshkey *key, const char *comment,
 	case KEY_ECDSA:
 	case KEY_ECDSA_CERT:
 #endif
+#ifndef WITHOUT_ED25519
 	case KEY_ED25519:
 	case KEY_ED25519_CERT:
+#endif /* WITHOUT_ED25519 */
 		type = constrained ?
 		    SSH2_AGENTC_ADD_ID_CONSTRAINED :
 		    SSH2_AGENTC_ADD_IDENTITY;

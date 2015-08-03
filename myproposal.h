@@ -59,6 +59,20 @@
 # define HOSTKEY_ECDSA_METHODS
 #endif
 
+#ifndef WITHOUT_ED25519
+# if defined(WITH_OPENSSL) && defined(HAVE_EVP_SHA256)
+#  define KEX_CURVE25519_METHODS "curve25519-sha256@libssh.org,"
+# else
+#  define KEX_CURVE25519_METHODS
+# endif
+# define HOSTKEY_CURVE25519_CERT_METHODS "ssh-ed25519-cert-v01@openssh.com,"
+# define HOSTKEY_CURVE25519_METHODS "ssh-ed25519,"
+#else
+# define KEX_CURVE25519_METHODS
+# define HOSTKEY_CURVE25519_CERT_METHODS
+# define HOSTKEY_CURVE25519_METHODS
+#endif /* WITHOUT_ED25519 */
+
 #ifdef OPENSSL_HAVE_EVPGCM
 # define AESGCM_CIPHER_MODES \
 	"aes128-gcm@openssh.com,aes256-gcm@openssh.com,"
@@ -78,11 +92,6 @@
 #endif
 
 #ifdef WITH_OPENSSL
-# ifdef HAVE_EVP_SHA256
-#  define KEX_CURVE25519_METHODS "curve25519-sha256@libssh.org,"
-# else
-#  define KEX_CURVE25519_METHODS ""
-# endif
 #define KEX_SERVER_KEX \
 	KEX_CURVE25519_METHODS \
 	KEX_ECDH_METHODS \
@@ -95,13 +104,13 @@
 
 #define	KEX_DEFAULT_PK_ALG	\
 	HOSTKEY_ECDSA_CERT_METHODS \
-	"ssh-ed25519-cert-v01@openssh.com," \
+	HOSTKEY_CURVE25519_CERT_METHODS \
 	"ssh-rsa-cert-v01@openssh.com," \
 	"ssh-dss-cert-v01@openssh.com," \
 	"ssh-rsa-cert-v00@openssh.com," \
 	"ssh-dss-cert-v00@openssh.com," \
 	HOSTKEY_ECDSA_METHODS \
-	"ssh-ed25519," \
+	HOSTKEY_CURVE25519_METHODS \
 	"ssh-rsa," \
 	"ssh-dss"
 
@@ -143,10 +152,10 @@
 #else
 
 #define KEX_SERVER_KEX		\
-	"curve25519-sha256@libssh.org"
+	KEX_CURVE25519_METHODS
 #define	KEX_DEFAULT_PK_ALG	\
-	"ssh-ed25519-cert-v01@openssh.com," \
-	"ssh-ed25519"
+	HOSTKEY_CURVE25519_CERT_METHODS \
+	HOSTKEY_CURVE25519_METHODS
 #define	KEX_SERVER_ENCRYPT \
 	"aes128-ctr,aes192-ctr,aes256-ctr," \
 	"chacha20-poly1305@openssh.com"

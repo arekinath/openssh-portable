@@ -155,7 +155,7 @@ $(SSHDOBJS): Makefile.in config.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 LIBCOMPAT=openbsd-compat/libopenbsd-compat.a
-$(LIBCOMPAT): always
+$(LIBCOMPAT): always libssh.a
 	(cd openbsd-compat && $(MAKE))
 always:
 

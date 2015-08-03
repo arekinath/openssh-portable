@@ -27,6 +27,7 @@
 
 #include "includes.h"
 
+#ifndef WITHOUT_ED25519
 #include <sys/types.h>
 
 #include <stdio.h>
@@ -168,3 +169,4 @@ out:
 	sshbuf_free(shared_secret);
 	return r;
 }
+#endif /* WITHOUT_ED25519 */

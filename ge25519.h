@@ -8,6 +8,7 @@
 
 #ifndef GE25519_H
 #define GE25519_H
+#ifndef WITHOUT_ED25519
 
 #include "fe25519.h"
 #include "sc25519.h"
@@ -40,4 +41,5 @@ void ge25519_double_scalarmult_vartime(ge25519 *r, const ge25519 *p1, const sc25
 
 void ge25519_scalarmult_base(ge25519 *r, const sc25519 *s);
 
+#endif /* WITHOUT_ED25519 */
 #endif

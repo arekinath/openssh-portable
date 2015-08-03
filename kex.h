@@ -58,13 +58,17 @@
 #define	KEX_ECDH_SHA2_NISTP256	"ecdh-sha2-nistp256"
 #define	KEX_ECDH_SHA2_NISTP384	"ecdh-sha2-nistp384"
 #define	KEX_ECDH_SHA2_NISTP521	"ecdh-sha2-nistp521"
+#ifndef WITHOUT_ED25519
 #define	KEX_CURVE25519_SHA256	"curve25519-sha256@libssh.org"
+#endif /* WITHOUT_ED25519 */
 
 #define COMP_NONE	0
 #define COMP_ZLIB	1
 #define COMP_DELAYED	2
 
+#ifndef WITHOUT_ED25519
 #define CURVE25519_SIZE 32
+#endif /* WITHOUT_ED25519 */
 
 enum kex_init_proposals {
 	PROPOSAL_KEX_ALGS,
@@ -92,7 +96,9 @@ enum kex_exchange {
 	KEX_DH_GEX_SHA1,
 	KEX_DH_GEX_SHA256,
 	KEX_ECDH_SHA2,
+#ifndef WITHOUT_ED25519
 	KEX_C25519_SHA256,
+#endif /* WITHOUT_ED25519 */
 	KEX_GSS_GRP1_SHA1,
 	KEX_GSS_GRP14_SHA1,
 	KEX_GSS_GEX_SHA1,
@@ -160,8 +166,10 @@ struct kex {
 	u_int	min, max, nbits;	/* GEX */
 	EC_KEY	*ec_client_key;		/* ECDH */
 	const EC_GROUP *ec_group;	/* ECDH */
+#ifndef WITHOUT_ED25519
 	u_char c25519_client_key[CURVE25519_SIZE]; /* 25519 */
 	u_char c25519_client_pubkey[CURVE25519_SIZE]; /* 25519 */
+#endif /* WITHOUT_ED25519 */
 };
 
 int	 kex_names_valid(const char *);
@@ -188,8 +196,10 @@ int	 kexgex_client(struct ssh *);
 int	 kexgex_server(struct ssh *);
 int	 kexecdh_client(struct ssh *);
 int	 kexecdh_server(struct ssh *);
+#ifndef WITHOUT_ED25519
 int	 kexc25519_client(struct ssh *);
 int	 kexc25519_server(struct ssh *);
+#endif /* WITHOUT_ED25519 */
 #ifdef GSSAPI
 int	 kexgss_client(struct ssh *);
 int	 kexgss_server(struct ssh *);
@@ -210,6 +220,7 @@ int kex_ecdh_hash(int, const EC_GROUP *, const char *, const char *,
     const u_char *, size_t, const u_char *, size_t, const u_char *, size_t,
     const EC_POINT *, const EC_POINT *, const BIGNUM *, u_char *, size_t *);
 
+#ifndef WITHOUT_ED25519
 int	 kex_c25519_hash(int, const char *, const char *, const char *, size_t,
     const char *, size_t, const u_char *, size_t, const u_char *, const u_char *,
     const u_char *, size_t, u_char *, size_t *);
@@ -221,6 +232,7 @@ int	kexc25519_shared_key(const u_char key[CURVE25519_SIZE],
     const u_char pub[CURVE25519_SIZE], struct sshbuf *out)
 	__attribute__((__bounded__(__minbytes__, 1, CURVE25519_SIZE)))
 	__attribute__((__bounded__(__minbytes__, 2, CURVE25519_SIZE)));
+#endif /* WITHOUT_ED25519 */
 
 int
 derive_ssh1_session_id(BIGNUM *, BIGNUM *, u_int8_t[8], u_int8_t[16]);

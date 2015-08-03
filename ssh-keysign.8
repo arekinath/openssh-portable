@@ -62,8 +62,6 @@ Controls whether
 is enabled.
 .Pp
 .It Pa /etc/ssh/ssh_host_dsa_key
-.It Pa /etc/ssh/ssh_host_ecdsa_key
-.It Pa /etc/ssh/ssh_host_ed25519_key
 .It Pa /etc/ssh/ssh_host_rsa_key
 These files contain the private parts of the host keys used to
 generate the digital signature.
@@ -74,8 +72,6 @@ Since they are readable only by root,
 must be set-uid root if host-based authentication is used.
 .Pp
 .It Pa /etc/ssh/ssh_host_dsa_key-cert.pub
-.It Pa /etc/ssh/ssh_host_ecdsa_key-cert.pub
-.It Pa /etc/ssh/ssh_host_ed25519_key-cert.pub
 .It Pa /etc/ssh/ssh_host_rsa_key-cert.pub
 If these files exist they are assumed to contain public certificate
 information corresponding with the private keys above.

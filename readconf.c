@@ -1848,8 +1848,10 @@ fill_default_options(Options * options)
 			add_identity_file(options, "~/",
 			    _PATH_SSH_CLIENT_ID_ECDSA, 0);
 #endif
+#ifndef WITHOUT_ED25519
 			add_identity_file(options, "~/",
 			    _PATH_SSH_CLIENT_ID_ED25519, 0);
+#endif /* WITHOUT_ED25519 */
 		}
 	}
 	if (options->escape_char == -1)

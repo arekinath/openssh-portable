@@ -214,7 +214,11 @@ type_bits_valid(int type, const char *name, u_int32_t *bitsp)
 	}
 	if (type == KEY_DSA && *bitsp != 1024)
 		fatal("DSA keys must be 1024 bits");
-	else if (type != KEY_ECDSA && type != KEY_ED25519 && *bitsp < 768)
+	else if (type != KEY_ECDSA &&
+#ifndef WITHOUT_ED25519
+		 type != KEY_ED25519 &&
+#endif /* WITHOUT_ED25519 */
+		 *bitsp < 768)
 		fatal("Key must at least be 768 bits");
 	else if (type == KEY_ECDSA && sshkey_ecdsa_bits_to_nid(*bitsp) == -1)
 		fatal("Invalid ECDSA key length - valid lengths are "
@@ -251,10 +255,12 @@ ask_filename(struct passwd *pw, const char *prompt)
 		case KEY_RSA:
 			name = _PATH_SSH_CLIENT_ID_RSA;
 			break;
+#ifndef WITHOUT_ED25519
 		case KEY_ED25519:
 		case KEY_ED25519_CERT:
 			name = _PATH_SSH_CLIENT_ID_ED25519;
 			break;
+#endif /* WITHOUT_ED25519 */
 		default:
 			fprintf(stderr, "bad key type\n");
 			exit(1);
@@ -954,7 +960,9 @@ do_gen_all_hostkeys(struct passwd *pw)
 #ifdef OPENSSL_HAS_ECC
 		{ "ecdsa", "ECDSA",_PATH_HOST_ECDSA_KEY_FILE },
 #endif
+#ifndef WITHOUT_ED25519
 		{ "ed25519", "ED25519",_PATH_HOST_ED25519_KEY_FILE },
+#endif /* WITHOUT_ED25519 */
 		{ NULL, NULL, NULL }
 	};
 
@@ -1643,7 +1651,10 @@ do_ca_sign(struct passwd *pw, int argc, char **argv)
 			fatal("%s: unable to open \"%s\": %s",
 			    __func__, tmp, ssh_err(r));
 		if (public->type != KEY_RSA && public->type != KEY_DSA &&
-		    public->type != KEY_ECDSA && public->type != KEY_ED25519)
+#ifndef WITHOUT_ED25519
+		    public->type != KEY_ED25519 && 
+#endif /* WITHOUT_ED25519 */
+		    public->type != KEY_ECDSA)
 			fatal("%s: key \"%s\" type %s cannot be certified",
 			    __func__, tmp, sshkey_type(public));
 
@@ -2558,8 +2569,10 @@ main(int argc, char **argv)
 			    _PATH_HOST_DSA_KEY_FILE, rr_hostname);
 			n += do_print_resource_record(pw,
 			    _PATH_HOST_ECDSA_KEY_FILE, rr_hostname);
+#ifndef WITHOUT_ED25519
 			n += do_print_resource_record(pw,
 			    _PATH_HOST_ED25519_KEY_FILE, rr_hostname);
+#endif /* WITHOUT_ED25519 */
 			if (n == 0)
 				fatal("no keys found.");
 			exit(0);

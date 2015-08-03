@@ -274,9 +274,7 @@ public key authentication is read.
 The default is
 .Pa ~/.ssh/identity
 for protocol version 1, and
-.Pa ~/.ssh/id_dsa ,
-.Pa ~/.ssh/id_ecdsa ,
-.Pa ~/.ssh/id_ed25519
+.Pa ~/.ssh/id_dsa
 and
 .Pa ~/.ssh/id_rsa
 for protocol version 2.
@@ -761,7 +759,7 @@ key pair for authentication purposes.
 The server knows the public key, and only the user knows the private key.
 .Nm
 implements public key authentication protocol automatically,
-using one of the DSA, ECDSA, Ed25519 or RSA algorithms.
+using one of the DSA or RSA algorithms.
 Protocol 1 is restricted to using only RSA keys,
 but protocol 2 may use any.
 The HISTORY section of
@@ -786,10 +784,6 @@ This stores the private key in
 (protocol 1),
 .Pa ~/.ssh/id_dsa
 (protocol 2 DSA),
-.Pa ~/.ssh/id_ecdsa
-(protocol 2 ECDSA),
-.Pa ~/.ssh/id_ed25519
-(protocol 2 Ed25519),
 or
 .Pa ~/.ssh/id_rsa
 (protocol 2 RSA)
@@ -798,10 +792,6 @@ and stores the public key in
 (protocol 1),
 .Pa ~/.ssh/id_dsa.pub
 (protocol 2 DSA),
-.Pa ~/.ssh/id_ecdsa.pub
-(protocol 2 ECDSA),
-.Pa ~/.ssh/id_ed25519.pub
-(protocol 2 Ed25519),
 or
 .Pa ~/.ssh/id_rsa.pub
 (protocol 2 RSA)
@@ -1341,7 +1331,7 @@ secret, but the recommended permissions are read/write/execute for the user,
 and not accessible by others.
 .Pp
 .It Pa ~/.ssh/authorized_keys
-Lists the public keys (DSA, ECDSA, Ed25519, RSA)
+Lists the public keys (DSA, RSA)
 that can be used for logging in as this user.
 The format of this file is described in the
 .Xr sshd 8
@@ -1363,8 +1353,6 @@ above.
 .Pp
 .It Pa ~/.ssh/identity
 .It Pa ~/.ssh/id_dsa
-.It Pa ~/.ssh/id_ecdsa
-.It Pa ~/.ssh/id_ed25519
 .It Pa ~/.ssh/id_rsa
 Contains the private key for authentication.
 These files
@@ -1378,8 +1366,6 @@ sensitive part of this file using 3DES.
 .Pp
 .It Pa ~/.ssh/identity.pub
 .It Pa ~/.ssh/id_dsa.pub
-.It Pa ~/.ssh/id_ecdsa.pub
-.It Pa ~/.ssh/id_ed25519.pub
 .It Pa ~/.ssh/id_rsa.pub
 Contains the public key for authentication.
 These files are not
@@ -1418,8 +1404,6 @@ The file format and configuration options are described in
 .Pp
 .It Pa /etc/ssh/ssh_host_key
 .It Pa /etc/ssh/ssh_host_dsa_key
-.It Pa /etc/ssh/ssh_host_ecdsa_key
-.It Pa /etc/ssh/ssh_host_ed25519_key
 .It Pa /etc/ssh/ssh_host_rsa_key
 These files contain the private parts of the host keys
 and are used for host-based authentication.

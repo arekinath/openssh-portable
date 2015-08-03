@@ -17,6 +17,8 @@
 
 #include "includes.h"
 
+#ifndef WITHOUT_ED25519
+
 #include <sys/types.h>
 #include <limits.h>
 
@@ -164,3 +166,4 @@ ssh_ed25519_verify(const struct sshkey *key,
 	free(ktype);
 	return r;
 }
+#endif /* WITHOUT_ED25519 */

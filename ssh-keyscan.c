@@ -286,7 +286,9 @@ keygrab_ssh2(con *c)
 	c->c_ssh->kex->kex[KEX_ECDH_SHA2] = kexecdh_client;
 # endif
 #endif
+#ifndef WITHOUT_ED25519
 	c->c_ssh->kex->kex[KEX_C25519_SHA256] = kexc25519_client;
+#endif /* WITHOUT_ED25519 */
 	ssh_set_verify_host_key_callback(c->c_ssh, key_print_wrapper);
 	/*
 	 * do the key-exchange until an error occurs or until
@@ -609,10 +611,15 @@ do_host(char *host)
 {
 	char *name = strnnsep(&host, " \t\n");
 	int j;
+#ifndef WITHOUT_ED25519
+	int max_kt = KT_ED25519;
+#else
+	int max_kt = KT_ECDSA;
+#endif /* WITHOUT_ED25519 */
 
 	if (name == NULL)
 		return;
-	for (j = KT_RSA1; j <= KT_ED25519; j *= 2) {
+	for (j = KT_RSA1; j <= max_kt; j *= 2) {
 		if (get_keytypes & j) {
 			while (ncon >= MAXCON)
 				conloop();
@@ -716,9 +723,11 @@ main(int argc, char **argv)
 				case KEY_RSA:
 					get_keytypes |= KT_RSA;
 					break;
+#ifndef WITHOUT_ED25519
 				case KEY_ED25519:
 					get_keytypes |= KT_ED25519;
 					break;
+#endif /* WITHOUT_ED25519 */
 				case KEY_UNSPEC:
 					fatal("unknown key type %s", tname);
 				}
