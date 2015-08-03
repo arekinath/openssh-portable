@@ -348,7 +348,7 @@ bsm_audit_bad_login(const char *what)
 /* Below is the sshd audit API code */
 
 void
-audit_connection_from(const char *host, int port)
+audit_connection_from(struct ssh *ssh, const char *host, int port)
 {
 	AuditInfoTermID *tid = &ssh_bsm_tid;
 	char buf[1024];
