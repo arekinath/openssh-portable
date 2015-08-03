@@ -477,7 +477,11 @@ static struct {
 	{ "afstokenpassing", sUnsupported, SSHCFG_GLOBAL },
 #ifdef GSSAPI
 	{ "gssapiauthentication", sGssAuthentication, SSHCFG_ALL },
+#ifdef USE_GSS_STORE_CRED
+	{ "gssapicleanupcredentials", sUnsupported, SSHCFG_GLOBAL },
+#else /* USE_GSS_STORE_CRED */
 	{ "gssapicleanupcredentials", sGssCleanupCreds, SSHCFG_GLOBAL },
+#endif /* USE_GSS_STORE_CRED */
 	{ "gssapistrictacceptorcheck", sGssStrictAcceptor, SSHCFG_GLOBAL },
 #else
 	{ "gssapiauthentication", sUnsupported, SSHCFG_ALL },
