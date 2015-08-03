@@ -47,7 +47,7 @@ enum ssh_audit_event_type {
 };
 typedef enum ssh_audit_event_type ssh_audit_event_t;
 
-void	audit_connection_from(const char *, int);
+void	audit_connection_from(struct ssh *, const char *, int);
 void	audit_event(struct ssh *, ssh_audit_event_t);
 void	audit_session_open(struct logininfo *);
 void	audit_session_close(struct logininfo *);

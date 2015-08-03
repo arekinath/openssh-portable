@@ -2160,7 +2160,7 @@ main(int ac, char **av)
 	remote_ip = ssh_remote_ipaddr(ssh);
 
 #ifdef SSH_AUDIT_EVENTS
-	audit_connection_from(remote_ip, remote_port);
+	audit_connection_from(ssh, remote_ip, remote_port);
 #endif
 
 	rdomain = ssh_packet_rdomain_in(ssh);
@@ -2248,7 +2248,7 @@ main(int ac, char **av)
 		startup_pipe = -1;
 	}
 
-#ifdef SSH_AUDIT_EVENTS
+#if defined(SSH_AUDIT_EVENTS) && !defined(USE_SOLARIS_AUDIT)
 	audit_event(ssh, SSH_AUTH_SUCCESS);
 #endif
 
@@ -2279,6 +2279,10 @@ main(int ac, char **av)
 		do_pam_session(ssh);
 	}
 #endif
+#ifdef	USE_SOLARIS_AUDIT
+	/* Audit should take place after all successful pam */
+	audit_event(ssh, SSH_AUTH_SUCCESS);
+#endif	/* USE_SOLARIS_AUDIT */
 
 	/*
 	 * In privilege separation, we fork another child and prepare

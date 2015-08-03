@@ -120,7 +120,7 @@ audit_event_lookup(ssh_audit_event_t ev)
  * has been attempted.
  */
 void
-audit_connection_from(const char *host, int port)
+audit_connection_from(struct ssh *ssh, const char *host, int port)
 {
 	debug("audit connection from %s port %d euid %d", host, port,
 	    (int)geteuid());

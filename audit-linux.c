@@ -71,7 +71,7 @@ linux_audit_record_event(int uid, const char *username, const char *hostname,
 /* Below is the sshd audit API code */
 
 void
-audit_connection_from(const char *host, int port)
+audit_connection_from(struct ssh *ssh, const char *host, int port)
 {
 	/* not implemented */
 }
