@@ -320,22 +320,66 @@ ssh_gssapi_getclient(Gssctxt *ctx, ssh_gssapi_client *client)
 void
 ssh_gssapi_cleanup_creds(void)
 {
+#ifdef USE_GSS_STORE_CRED
+	debug("removing gssapi cred file not implemented");
+#else
 	if (gssapi_client.store.filename != NULL) {
 		/* Unlink probably isn't sufficient */
 		debug("removing gssapi cred file\"%s\"",
 		    gssapi_client.store.filename);
 		unlink(gssapi_client.store.filename);
 	}
+#endif /* USE_GSS_STORE_CRED */
 }
 
 /* As user */
 void
 ssh_gssapi_storecreds(void)
 {
+#ifdef USE_GSS_STORE_CRED
+	OM_uint32 maj_status, min_status;
+
+	if (gssapi_client.creds == NULL) {
+		debug("No credentials stored");
+		return;
+	}
+
+	maj_status = gss_store_cred(&min_status, gssapi_client.creds,
+	    GSS_C_INITIATE, &gssapi_client.mech->oid, 1, 1, NULL, NULL);
+
+	if (GSS_ERROR(maj_status)) {
+		Buffer b;
+		gss_buffer_desc msg;
+		OM_uint32 lmin;
+		OM_uint32 more = 0;
+		buffer_init(&b);
+		/* GSS-API error */
+		do {
+			gss_display_status(&lmin, maj_status, GSS_C_GSS_CODE,
+			    GSS_C_NULL_OID, &more, &msg);
+			buffer_append(&b, msg.value, msg.length);
+			buffer_put_char(&b, '\n');
+			gss_release_buffer(&lmin, &msg);
+		} while (more != 0);
+		/* Mechanism specific error */
+		do {
+			gss_display_status(&lmin, min_status, GSS_C_MECH_CODE,
+			    &gssapi_client.mech->oid, &more, &msg);
+			buffer_append(&b, msg.value, msg.length);
+			buffer_put_char(&b, '\n');
+			gss_release_buffer(&lmin, &msg);
+		} while (more != 0);
+		buffer_put_char(&b, '\0');
+		error("GSS-API error while storing delegated credentials: %s",
+		    buffer_ptr(&b));
+		buffer_free(&b);
+	}
+#else	/* #ifdef USE_GSS_STORE_CRED */
 	if (gssapi_client.mech && gssapi_client.mech->storecreds) {
 		(*gssapi_client.mech->storecreds)(&gssapi_client);
 	} else
 		debug("ssh_gssapi_storecreds: Not a GSSAPI mechanism");
+#endif	/* #ifdef USE_GSS_STORE_CRED */
 }
 
 /* This allows GSSAPI methods to do things to the childs environment based
