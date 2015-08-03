@@ -35,7 +35,7 @@
 .\"
 .\" $OpenBSD: sshd.8,v 1.283 2016/02/05 03:07:06 djm Exp $
 .Dd $Mdocdate: February 5 2016 $
-.Dt SSHD 8
+.Dt SSHD 1M
 .Os
 .Sh NAME
 .Nm sshd
@@ -66,8 +66,8 @@ over an insecure network.
 .Pp
 .Nm
 listens for connections from clients.
-It is normally started at boot from
-.Pa /etc/rc .
+It is normally started at boot by
+.Xr smf 5 .
 It forks a new
 daemon for each incoming connection.
 The forked daemons handle
@@ -77,7 +77,7 @@ and data exchange.
 .Nm
 can be configured using command-line options or a configuration file
 (by default
-.Xr sshd_config 5 ) ;
+.Xr sshd_config 4 ) ;
 command-line options override values specified in the
 configuration file.
 .Nm
@@ -204,7 +204,7 @@ Can be used to give options in the format used in the configuration file.
 This is useful for specifying options for which there is no separate
 command-line flag.
 For full details of the options, and their values, see
-.Xr sshd_config 5 .
+.Xr sshd_config 4 .
 .It Fl p Ar port
 Specifies the port on which the server listens for connections
 (default 22).
@@ -274,7 +274,7 @@ The default is to use protocol 2 only,
 though this can be changed via the
 .Cm Protocol
 option in
-.Xr sshd_config 5 .
+.Xr sshd_config 4 .
 Protocol 2 supports DSA, ECDSA, Ed25519 and RSA keys;
 protocol 1 only supports RSA keys.
 For both protocols,
@@ -399,7 +399,7 @@ if it exists, and users are allowed to change their environment.
 See the
 .Cm PermitUserEnvironment
 option in
-.Xr sshd_config 5 .
+.Xr sshd_config 4 .
 .It
 Changes to user's home directory.
 .It
@@ -553,7 +553,7 @@ The command originally supplied by the client is available in the
 environment variable.
 Note that this option applies to shell, command or subsystem execution.
 Also note that this command may be superseded by either a
-.Xr sshd_config 5
+.Xr sshd_config 4
 .Cm ForceCommand
 directive or a command embedded in a certificate.
 .It Cm environment="NAME=value"
@@ -574,7 +574,7 @@ Specifies that in addition to public key authentication, either the canonical
 name of the remote host or its IP address must be present in the
 comma-separated list of patterns.
 See PATTERNS in
-.Xr ssh_config 5
+.Xr ssh_config 4
 for more information on patterns.
 .Pp
 In addition to the wildcard matching that may be applied to hostnames or
@@ -891,7 +891,7 @@ It should only be writable by root.
 Contains Diffie-Hellman groups used for the "Diffie-Hellman Group Exchange"
 key exchange method.
 The file format is described in
-.Xr moduli 5 .
+.Xr moduli 4 .
 If no usable groups are found in this file then fixed internal groups will
 be used.
 .Pp
@@ -954,7 +954,7 @@ should be world-readable.
 Contains configuration data for
 .Nm sshd .
 The file format and configuration options are described in
-.Xr sshd_config 5 .
+.Xr sshd_config 4 .
 .Pp
 .It Pa /etc/ssh/sshrc
 Similar to
@@ -989,10 +989,10 @@ The content of this file is not sensitive; it can be world-readable.
 .Xr ssh-keyscan 1 ,
 .Xr chroot 2 ,
 .Xr login.conf 5 ,
-.Xr moduli 5 ,
-.Xr sshd_config 5 ,
-.Xr inetd 8 ,
-.Xr sftp-server 8
+.Xr moduli 4 ,
+.Xr sshd_config 4 ,
+.Xr inetd 1M ,
+.Xr sftp-server 1M
 .Sh AUTHORS
 OpenSSH is a derivative of the original and free
 ssh 1.2.12 release by Tatu Ylonen.
