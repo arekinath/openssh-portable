@@ -728,6 +728,9 @@ Furthermore, the
 token used for the session will be set to expire after 20 minutes.
 Remote clients will be refused access after this time.
 .Pp
+The default on Solaris is
+.Dq yes .
+.Pp
 See the X11 SECURITY extension specification for full details on
 the restrictions imposed on untrusted clients.
 .It Cm GatewayPorts
@@ -754,8 +757,8 @@ The default is
 .Pa /etc/ssh/ssh_known_hosts2 .
 .It Cm GSSAPIAuthentication
 Specifies whether user authentication based on GSSAPI is allowed.
-The default is
-.Cm no .
+The default on Solaris is
+.Dq yes .
 .It Cm GSSAPIDelegateCredentials
 Forward (delegate) credentials to the server.
 The default is
