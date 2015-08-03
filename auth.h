@@ -99,6 +99,9 @@ struct Authctxt {
 #ifdef PAM_ENHANCEMENT
 	char		*authmethod_name;
 #endif
+#ifdef HAVE_PAM_AUSER
+	char		*auser;
+#endif
 };
 
 /*

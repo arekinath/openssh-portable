@@ -81,6 +81,9 @@ userauth_hostbased(struct ssh *ssh)
 	debug("signature:");
 	sshbuf_dump_data(sig, slen, stderr);
 #endif
+#ifdef HAVE_PAM_AUSER
+	authctxt->auser = NULL;
+#endif
 	pktype = sshkey_type_from_name(pkalg);
 	if (pktype == KEY_UNSPEC) {
 		/* this is perfectly legal */
@@ -151,6 +154,13 @@ userauth_hostbased(struct ssh *ssh)
 	    PRIVSEP(sshkey_verify(key, sig, slen,
 	    sshbuf_ptr(b), sshbuf_len(b), pkalg, ssh->compat)) == 0)
 		authenticated = 1;
+
+#ifdef HAVE_PAM_AUSER
+	if (authenticated) {
+		authctxt->auser = cuser;
+		cuser = NULL;
+	}
+#endif
 
 	auth2_record_key(authctxt, authenticated, key);
 	sshbuf_free(b);
