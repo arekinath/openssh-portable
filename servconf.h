@@ -73,6 +73,10 @@ struct listenaddr {
 	struct addrinfo *addrs;
 };
 
+#ifdef PAM_ENHANCEMENT
+#define _SSH_PAM_SERVICE_PREFIX "sshd"
+#endif
+
 typedef struct {
 	u_int	num_ports;
 	u_int	ports_from_cmdline;
@@ -225,6 +229,12 @@ typedef struct {
 
 	u_int	num_auth_methods;
 	char   **auth_methods;
+
+#ifdef PAM_ENHANCEMENT
+	char   *pam_service_prefix;
+	char   *pam_service_name;
+	int	pam_service_per_authmethod;
+#endif
 
 	int	fingerprint_hash;
 	int	expose_userauth_info;
