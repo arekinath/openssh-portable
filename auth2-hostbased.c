@@ -85,6 +85,9 @@ userauth_hostbased(Authctxt *authctxt)
 	buffer_dump(&b);
 	buffer_free(&b);
 #endif
+#ifdef HAVE_PAM_AUSER
+	authctxt->auser = NULL;
+#endif
 	pktype = key_type_from_name(pkalg);
 	if (pktype == KEY_UNSPEC) {
 		/* this is perfectly legal */
@@ -142,6 +145,13 @@ userauth_hostbased(Authctxt *authctxt)
 	    PRIVSEP(key_verify(key, sig, slen, buffer_ptr(&b),
 			buffer_len(&b))) == 1)
 		authenticated = 1;
+
+#ifdef HAVE_PAM_AUSER
+	if (authenticated) {
+		authctxt->auser = cuser;
+		cuser = NULL;
+	}
+#endif
 
 	buffer_free(&b);
 done:
