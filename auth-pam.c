@@ -1039,6 +1039,20 @@ do_pam_account(void)
 	return (sshpam_account_status);
 }
 
+#ifdef HAVE_PAM_AUSER
+void
+do_pam_set_auser(const char* auser)
+{
+	if (auser != NULL) {
+		debug("PAM: setting PAM_AUSER to \"%s\"", auser);
+		sshpam_err = pam_set_item(sshpam_handle, PAM_AUSER, auser);
+		if (sshpam_err != PAM_SUCCESS)
+			error("PAM: failed to set PAM_AUSER: %s",
+			    pam_strerror(sshpam_handle, sshpam_err));
+	}
+}
+#endif
+
 void
 do_pam_set_tty(const char *tty)
 {
