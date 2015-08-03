@@ -392,6 +392,12 @@ monitor_child_preauth(struct ssh *ssh, struct monitor *pmonitor)
 		}
 	}
 
+#if defined(HAVE_PAM_AUSER) && defined(USE_PAM)
+	if (hostbased_cuser != NULL) {
+		free(hostbased_cuser);
+		hostbased_cuser = NULL;
+	}
+#endif
 	if (!authctxt->valid)
 		fatal_f("authenticated invalid user");
 	if (strcmp(auth_method, "unknown") == 0)
@@ -595,7 +601,10 @@ monitor_reset_key_state(void)
 {
 	/* reset state */
 	free(key_blob);
+#if !defined(HAVE_PAM_AUSER) || !defined(USE_PAM)
 	free(hostbased_cuser);
+	hostbased_cuser = NULL;
+#endif
 	free(hostbased_chost);
 	sshauthopt_free(key_opts);
 	key_blob = NULL;
@@ -1079,6 +1088,11 @@ mm_answer_pam_account(struct ssh *ssh, int sock, struct sshbuf *m)
 
 	if (!options.use_pam)
 		fatal("%s: PAM not enabled", __func__);
+
+#ifdef HAVE_PAM_AUSER
+	if (hostbased_cuser != NULL)
+		do_pam_set_auser(hostbased_cuser);
+#endif
 
 	ret = do_pam_account();
 
