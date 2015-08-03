@@ -109,7 +109,7 @@ ssh_gssapi_krb5_userok(ssh_gssapi_client *client, char *name)
 	return retval;
 }
 
-
+#ifndef USE_GSS_STORE_CRED
 /* This writes out any forwarded credentials from the structure populated
  * during userauth. Called after we have setuid to the user */
 
@@ -195,6 +195,7 @@ ssh_gssapi_krb5_storecreds(ssh_gssapi_client *client)
 
 	return;
 }
+#endif /* #ifndef USE_GSS_STORE_CRED */
 
 ssh_gssapi_mech gssapi_kerberos_mech = {
 	"toWM5Slw5Ew8Mqkay+al2g==",
@@ -203,7 +204,11 @@ ssh_gssapi_mech gssapi_kerberos_mech = {
 	NULL,
 	&ssh_gssapi_krb5_userok,
 	NULL,
+#ifdef USE_GSS_STORE_CRED
+	NULL
+#else
 	&ssh_gssapi_krb5_storecreds
+#endif
 };
 
 #endif /* KRB5 */
