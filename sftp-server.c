@@ -51,6 +51,9 @@
 
 #include "sftp.h"
 #include "sftp-common.h"
+#ifdef DTRACE_SFTP
+#include "sftp_provider_impl.h"
+#endif
 
 char *sftp_realpath(const char *, char *); /* sftp-realpath.c */
 
@@ -776,6 +779,7 @@ process_read(u_int32_t id)
 	u_int32_t len;
 	int r, handle, fd, ret, status = SSH2_FX_FAILURE;
 	u_int64_t off;
+	char *fpath;
 
 	if ((r = get_handle(iqueue, &handle)) != 0 ||
 	    (r = sshbuf_get_u64(iqueue, &off)) != 0 ||
@@ -805,7 +809,16 @@ process_read(u_int32_t id)
 	if (len == 0) {
 		/* weird, but not strictly disallowed */
 		ret = 0;
-	} else if ((ret = read(fd, buf, len)) == -1) {
+	} else {
+#ifdef DTRACE_SFTP
+		SFTP_TRANSFER_START_OP("read", fd, fpath, len);
+#endif
+		ret = read(fd, buf, len);
+#ifdef DTRACE_SFTP
+		SFTP_TRANSFER_DONE_OP("read", fd, fpath, ret);
+#endif
+	}
+	if (ret == -1) {
 		status = errno_to_portable(errno);
 		error_f("read \"%.100s\": %s", handle_to_name(handle),
 		    strerror(errno));
@@ -830,14 +843,16 @@ process_write(u_int32_t id)
 	size_t len;
 	int r, handle, fd, ret, status;
 	u_char *data;
+	char *fpath;
 
 	if ((r = get_handle(iqueue, &handle)) != 0 ||
 	    (r = sshbuf_get_u64(iqueue, &off)) != 0 ||
 	    (r = sshbuf_get_string(iqueue, &data, &len)) != 0)
 		fatal_fr(r, "parse");
 
+	fpath = handle_to_name(handle);
 	debug("request %u: write \"%s\" (handle %d) off %llu len %zu",
-	    id, handle_to_name(handle), handle, (unsigned long long)off, len);
+	    id, fpath, handle, (unsigned long long)off, len);
 	fd = handle_to_fd(handle);
 
 	if (fd < 0)
@@ -850,7 +865,13 @@ process_write(u_int32_t id)
 			    strerror(errno));
 		} else {
 /* XXX ATOMICIO ? */
+#ifdef DTRACE_SFTP
+			SFTP_TRANSFER_START_OP("write", fd, fpath, len);
+#endif
 			ret = write(fd, data, len);
+#ifdef DTRACE_SFTP
+			SFTP_TRANSFER_DONE_OP("write", fd, fpath, ret);
+#endif
 			if (ret == -1) {
 				status = errno_to_portable(errno);
 				error_f("write \"%.100s\": %s",
