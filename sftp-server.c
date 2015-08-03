@@ -54,6 +54,9 @@
 
 #include "sftp.h"
 #include "sftp-common.h"
+#ifdef DTRACE_SFTP
+#include "sftp_provider_impl.h"
+#endif
 
 /* Our verbosity */
 static LogLevel log_level = SYSLOG_LEVEL_ERROR;
@@ -740,14 +743,17 @@ process_read(u_int32_t id)
 	u_int32_t len;
 	int r, handle, fd, ret, status = SSH2_FX_FAILURE;
 	u_int64_t off;
+	char *fpath;
 
 	if ((r = get_handle(iqueue, &handle)) != 0 ||
 	    (r = sshbuf_get_u64(iqueue, &off)) != 0 ||
 	    (r = sshbuf_get_u32(iqueue, &len)) != 0)
 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
 
+	fpath = handle_to_name(handle);
+
 	debug("request %u: read \"%s\" (handle %d) off %llu len %d",
-	    id, handle_to_name(handle), handle, (unsigned long long)off, len);
+	    id, fpath, handle, (unsigned long long)off, len);
 	if (len > sizeof buf) {
 		len = sizeof buf;
 		debug2("read change len %d", len);
@@ -758,7 +764,13 @@ process_read(u_int32_t id)
 			error("process_read: seek failed");
 			status = errno_to_portable(errno);
 		} else {
+#ifdef DTRACE_SFTP
+			SFTP_TRANSFER_START_OP("read", fd, fpath, len);
+#endif
 			ret = read(fd, buf, len);
+#ifdef DTRACE_SFTP
+			SFTP_TRANSFER_DONE_OP("read", fd, fpath, ret);
+#endif
 			if (ret < 0) {
 				status = errno_to_portable(errno);
 			} else if (ret == 0) {
@@ -781,14 +793,16 @@ process_write(u_int32_t id)
 	size_t len;
 	int r, handle, fd, ret, status;
 	u_char *data;
+	char *fpath;
 
 	if ((r = get_handle(iqueue, &handle)) != 0 ||
 	    (r = sshbuf_get_u64(iqueue, &off)) != 0 ||
 	    (r = sshbuf_get_string(iqueue, &data, &len)) != 0)
 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
 
+	fpath = handle_to_name(handle);
 	debug("request %u: write \"%s\" (handle %d) off %llu len %zu",
-	    id, handle_to_name(handle), handle, (unsigned long long)off, len);
+	    id, fpath, handle, (unsigned long long)off, len);
 	fd = handle_to_fd(handle);
 
 	if (fd < 0)
@@ -800,7 +814,14 @@ process_write(u_int32_t id)
 			error("process_write: seek failed");
 		} else {
 /* XXX ATOMICIO ? */
+#ifdef DTRACE_SFTP
+			SFTP_TRANSFER_START_OP("write", fd, fpath, len);
+#endif
 			ret = write(fd, data, len);
+#ifdef DTRACE_SFTP
+			SFTP_TRANSFER_DONE_OP("write", fd, fpath, ret);
+#endif
+
 			if (ret < 0) {
 				error("process_write: write failed");
 				status = errno_to_portable(errno);
