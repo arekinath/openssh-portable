@@ -1179,8 +1179,8 @@ Specifies whether
 .Xr sshd 8
 should print the date and time of the last user login when a user logs
 in interactively.
-The default is
-.Dq yes .
+On Solaris this option is always ignored since pam_unix_session(5)
+reports the last login time.
 .It Cm PrintMotd
 Specifies whether
 .Xr sshd 8
@@ -1573,7 +1573,8 @@ This file should be writable by root only, but it is recommended
 (though not necessary) that it be world-readable.
 .El
 .Sh SEE ALSO
-.Xr sshd 8
+.Xr sshd 8 ,
+.Xr pam_unix_session 5
 .Sh AUTHORS
 OpenSSH is a derivative of the original and free
 ssh 1.2.12 release by Tatu Ylonen.
