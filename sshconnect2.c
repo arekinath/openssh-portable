@@ -81,6 +81,10 @@ extern char *client_version_string;
 extern char *server_version_string;
 extern Options options;
 
+#ifdef DISABLE_BANNER
+extern Buffer command;
+#endif
+
 /*
  * SSH2 key exchange
  */
@@ -473,7 +477,20 @@ input_userauth_banner(int type, u_int32_t seq, void *ctxt)
 	debug3("input_userauth_banner");
 	raw = packet_get_string(&len);
 	lang = packet_get_string(NULL);
+
+#ifdef DISABLE_BANNER
+	/*
+	 * Banner is a warning message according to RFC 4252. So, never print
+	 * a banner in error log level or lower. If the log level is higher,
+	 * use DisableBanner option to decide whether to display it or not.
+	 */
+	if (len > 0 && options.log_level >= SYSLOG_LEVEL_INFO && 
+            (options.disable_banner == SSH_DISABLEBANNER_NO ||
+            (options.disable_banner == SSH_DISABLEBANNER_INEXECMODE &&
+            buffer_len(&command) == 0))) {
+#else
 	if (len > 0 && options.log_level >= SYSLOG_LEVEL_INFO) {
+#endif
 		if (len > 65536)
 			len = 65536;
 		msg = xmalloc(len * 4 + 1); /* max expansion from strnvis() */
