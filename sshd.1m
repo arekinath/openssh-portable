@@ -977,6 +977,33 @@ concurrently for different ports, this contains the process ID of the one
 started last).
 The content of this file is not sensitive; it can be world-readable.
 .El
+
+.Sh SECURITY
+sshd uses pam(3PAM) for password and keyboard-interactive methods as well as 
+for account management, session management, and the password management for all
+authentication methods.
+.Pp
+Each SSHv2 userauth type has its own PAM service name:
+
+.Bd -literal -offset 3n
+
+-----------------------------------------------
+| SSHv2 Userauth       | PAM Service Name     |
+-----------------------------------------------
+| none                 | sshd-none            |
+-----------------------------------------------
+| password             | sshd-password        |
+-----------------------------------------------
+| keyboard-interactive | sshd-kbdint          |
+-----------------------------------------------
+| pubkey               | sshd-pubkey          |
+-----------------------------------------------
+| hostbased            | sshd-hostbased       |
+-----------------------------------------------
+| gssapi-with-mic      | sshd-gssapi          |
+-----------------------------------------------
+.Ed
+
 .Sh SEE ALSO
 .Xr scp 1 ,
 .Xr sftp 1 ,

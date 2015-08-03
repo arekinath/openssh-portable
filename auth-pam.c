@@ -618,6 +618,72 @@ sshpam_cleanup(void)
 	sshpam_handle = NULL;
 }
 
+#ifdef PAM_ENHANCEMENT
+char *
+derive_pam_service_name(Authctxt *authctxt)
+{
+	char *svcname = xmalloc(BUFSIZ);
+
+	/*
+	 * If PamServiceName is set we use that for everything, including
+	 * SSHv1
+	 */
+	if (options.pam_service_name != NULL) {
+		(void) strlcpy(svcname, options.pam_service_name, BUFSIZ);
+		return (svcname);
+	}
+
+	if (compat20) {
+		char *method_name = authctxt->authmethod_name;
+
+		if (!method_name)
+			fatal("Userauth method unknown while starting PAM");
+
+		/*
+		 * For SSHv2 we use "sshd-<userauth name>
+		 * The "sshd" prefix can be changed via the PAMServicePrefix
+		 * sshd_config option.
+		 */
+		if (strcmp(method_name, "none") == 0) {
+			snprintf(svcname, BUFSIZ, "%s-none",
+			    options.pam_service_prefix);
+		}
+		if (strcmp(method_name, "password") == 0) {
+			snprintf(svcname, BUFSIZ, "%s-password",
+			    options.pam_service_prefix);
+		}
+		if (strcmp(method_name, "keyboard-interactive") == 0) {
+			/* "keyboard-interactive" is too long, shorten it */
+			snprintf(svcname, BUFSIZ, "%s-kbdint",
+			    options.pam_service_prefix);
+		}
+		if (strcmp(method_name, "publickey") == 0) {
+			/* "publickey" is too long, shorten it */
+			snprintf(svcname, BUFSIZ, "%s-pubkey",
+			    options.pam_service_prefix);
+		}
+		if (strcmp(method_name, "hostbased") == 0) {
+			snprintf(svcname, BUFSIZ, "%s-hostbased",
+			    options.pam_service_prefix);
+		}
+		if (strncmp(method_name, "gssapi-", 7) == 0) {
+		        /*
+			 * Although OpenSSH only supports "gssapi-with-mic"
+			 * for now. We will still map any userauth method
+                         * prefixed with "gssapi-" to the gssapi PAM service.
+			 */ 
+			snprintf(svcname, BUFSIZ, "%s-gssapi",
+			    options.pam_service_prefix);
+		}
+		return svcname;
+	} else {
+		/* SSHv1 doesn't get to be so cool */
+	        snprintf(svcname, BUFSIZ, "sshd-v1");
+	}
+	return svcname;
+}
+#endif /* PAM_ENHANCEMENT */
+
 static int
 sshpam_init(Authctxt *authctxt)
 {
@@ -625,18 +691,71 @@ sshpam_init(Authctxt *authctxt)
 	const char *pam_rhost, *pam_user, *user = authctxt->user;
 	const char **ptr_pam_user = &pam_user;
 
+#ifdef PAM_ENHANCEMENT
+	const char *pam_service;
+        const char **ptr_pam_service = &pam_service;
+	char *svc = NULL;
+
+	svc = derive_pam_service_name(authctxt);
+        debug3("PAM service is %s", svc);
+#endif
+
 	if (sshpam_handle != NULL) {
+#ifdef PAM_ENHANCEMENT
+	        /* get the pam service name */
+		sshpam_err = pam_get_item(sshpam_handle,
+		    PAM_SERVICE, (sshpam_const void **)ptr_pam_service);
+                if (sshpam_err != PAM_SUCCESS) 
+		    fatal("Failed to get the PAM service name");
+		debug3("Previous pam_service is %s", pam_service ?
+                    pam_service : "NULL");
+
+		/* get the pam user name */
+		sshpam_err = pam_get_item(sshpam_handle,
+		    PAM_USER, (sshpam_const void **)ptr_pam_user);
+
+		/*
+		 * only need to re-start if either user or service is 
+                 * different.
+                 */
+		if (sshpam_err == PAM_SUCCESS && strcmp(user, pam_user) == 0
+		    && strncmp(svc, pam_service, strlen(svc)) == 0) {
+		        free(svc);
+			return (0);
+                }
+
+		/*
+		 * Clean up previous PAM state.  No need to clean up session 
+		 * and creds.
+		 */
+                sshpam_authenticated = 0;
+                sshpam_account_status = -1;
+
+		sshpam_err = pam_set_item(sshpam_handle, PAM_CONV, NULL);
+         	if (sshpam_err != PAM_SUCCESS)
+		        debug3("Cannot remove PAM conv"); /* a warning only */
+#else /* Original */
 		/* We already have a PAM context; check if the user matches */
 		sshpam_err = pam_get_item(sshpam_handle,
 		    PAM_USER, (sshpam_const void **)ptr_pam_user);
 		if (sshpam_err == PAM_SUCCESS && strcmp(user, pam_user) == 0)
 			return (0);
+#endif /* PAM_ENHANCEMENT */
 		pam_end(sshpam_handle, sshpam_err);
 		sshpam_handle = NULL;
 	}
 	debug("PAM: initializing for \"%s\"", user);
+
+#ifdef PAM_ENHANCEMENT
+        debug3("Starting PAM service %s for user %s method %s", svc, user,
+            authctxt->authmethod_name);
+	sshpam_err =
+	    pam_start(svc, user, &store_conv, &sshpam_handle);
+	free(svc);
+#else /* Original */
 	sshpam_err =
 	    pam_start(SSHD_PAM_SERVICE, user, &store_conv, &sshpam_handle);
+#endif
 	sshpam_authctxt = authctxt;
 
 	if (sshpam_err != PAM_SUCCESS) {
