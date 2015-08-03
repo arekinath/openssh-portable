@@ -112,6 +112,7 @@ static const struct keytype keytypes[] = {
 #  endif /* OPENSSL_HAS_NISTP521 */
 # endif /* OPENSSL_HAS_ECC */
 #endif /* WITH_OPENSSL */
+	{ "null", "null", KEY_NULL, 0, 0 },
 	{ NULL, NULL, -1, -1, 0 }
 };
 
