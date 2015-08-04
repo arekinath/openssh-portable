@@ -769,11 +769,22 @@ process_queued_listen_addrs(ServerOptions *options)
 		options->address_family = AF_UNSPEC;
 
 	for (i = 0; i < options->num_queued_listens; i++) {
-		add_listen_addr(options, options->queued_listen_addrs[i],
-		    options->queued_listen_ports[i]);
+		/*
+		 * To retain backwards compat with SunSSH, convert any listener
+		 * on :: into a listener of unspecified AF (so it listens on
+		 * v4 too)
+		 */
+		if (strcmp(options->queued_listen_addrs[i], "::") == 0) {
+			add_listen_addr(options, NULL,
+			    options->queued_listen_ports[i]);
+		} else {
+			add_listen_addr(options, options->queued_listen_addrs[i],
+			    options->queued_listen_ports[i]);
+		}
 		free(options->queued_listen_addrs[i]);
 		options->queued_listen_addrs[i] = NULL;
 	}
+
 	free(options->queued_listen_addrs);
 	options->queued_listen_addrs = NULL;
 	free(options->queued_listen_ports);
