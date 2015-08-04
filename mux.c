@@ -1851,6 +1851,8 @@ mux_client_request_session(int fd)
 	    mm_send_fd(fd, STDERR_FILENO) == -1)
 		fatal("%s: send fds failed", __func__);
 
+	platform_pledge_mux();
+
 	debug3("%s: session request sent", __func__);
 
 	/* Read their reply */
@@ -1995,6 +1997,8 @@ mux_client_request_stdio_fwd(int fd)
 	if (mm_send_fd(fd, STDIN_FILENO) == -1 ||
 	    mm_send_fd(fd, STDOUT_FILENO) == -1)
 		fatal("%s: send fds failed", __func__);
+
+	platform_pledge_mux();
 
 	debug3("%s: stdio forward request sent", __func__);
 
