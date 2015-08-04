@@ -72,6 +72,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <priv.h>
 
 #ifdef WITH_OPENSSL
 #include <openssl/dh.h>
@@ -609,6 +610,7 @@ privsep_preauth_child(void)
 {
 	u_int32_t rnd[256];
 	gid_t gidset[1];
+	priv_set_t *pset = NULL;
 
 	/* Enable challenge-response authentication for privilege separation */
 	privsep_challenge_enable();
@@ -648,6 +650,16 @@ privsep_preauth_child(void)
 		fatal("setgroups: %.100s", strerror(errno));
 	permanently_set_uid(privsep_pw);
 #endif
+	/* Drop Illumos privileges */
+	if ((pset = priv_allocset()) == NULL)
+		fatal("priv_allocset failed");
+	priv_emptyset(pset);
+	if (setppriv(PRIV_SET, PRIV_PERMITTED, pset))
+		fatal("setppriv failed: %s", strerror(errno));
+	if (setppriv(PRIV_SET, PRIV_LIMIT, pset))
+		fatal("setppriv failed: %s", strerror(errno));
+	if (setppriv(PRIV_SET, PRIV_INHERITABLE, pset))
+		fatal("setppriv failed: %s", strerror(errno));
 }
 
 static int
