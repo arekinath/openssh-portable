@@ -955,10 +955,21 @@ process_queued_listen_addrs(ServerOptions *options)
 
 	for (i = 0; i < options->num_queued_listens; i++) {
 		qla = &options->queued_listen_addrs[i];
-		add_listen_addr(options, qla->addr, qla->rdomain, qla->port);
+		/*
+		 * To retain backwards compat with SunSSH, convert any listener
+		 * on :: into a listener of unspecified AF (so it listens on
+		 * v4 too)
+		 */
+		if (strcmp(qla->addr, "::") == 0) {
+			add_listen_addr(options, NULL, qla->rdomain, qla->port);
+		} else {
+			add_listen_addr(options, qla->addr, qla->rdomain,
+			    qla->port);
+		}
 		free(qla->addr);
 		free(qla->rdomain);
 	}
+
 	free(options->queued_listen_addrs);
 	options->queued_listen_addrs = NULL;
 	options->num_queued_listens = 0;
