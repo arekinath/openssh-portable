@@ -1926,8 +1926,11 @@ main(int ac, char **av)
 
 		if ((stat(_PATH_PRIVSEP_CHROOT_DIR, &st) == -1) ||
 		    (S_ISDIR(st.st_mode) == 0))
-			fatal("Missing privilege separation directory: %s",
-			    _PATH_PRIVSEP_CHROOT_DIR);
+			if (mkdir(_PATH_PRIVSEP_CHROOT_DIR, 0755))
+				fatal("Failed to create privilege separation "
+				    "directory %s: %s",
+				    _PATH_PRIVSEP_CHROOT_DIR,
+				    strerror(errno));
 
 #ifdef HAVE_CYGWIN
 		if (check_ntsec(_PATH_PRIVSEP_CHROOT_DIR) &&
