@@ -632,9 +632,25 @@ privsep_preauth_child(void)
 	demote_sensitive_data();
 
 	/* Change our root directory */
-	if (chroot(_PATH_PRIVSEP_CHROOT_DIR) == -1)
-		fatal("chroot(\"%s\"): %s", _PATH_PRIVSEP_CHROOT_DIR,
-		    strerror(errno));
+	if (chroot(_PATH_PRIVSEP_CHROOT_DIR) == -1) {
+		/* if we failed due to no dir, try to create it */
+		if (errno == ENOENT) {
+			if (mkdir(_PATH_PRIVSEP_CHROOT_DIR, 0755))
+				fatal("chroot(\"%s\") failed, and mkdir then "
+				    "failed: %s", _PATH_PRIVSEP_CHROOT_DIR,
+				    strerror(errno));
+
+			/* then try to chroot again */
+			if (chroot(_PATH_PRIVSEP_CHROOT_DIR) == -1)
+				fatal("chroot(\"%s\"): %s",
+				    _PATH_PRIVSEP_CHROOT_DIR,
+				    strerror(errno));
+
+		} else {
+			fatal("chroot(\"%s\"): %s", _PATH_PRIVSEP_CHROOT_DIR,
+			    strerror(errno));
+		}
+	}
 	if (chdir("/") == -1)
 		fatal("chdir(\"/\"): %s", strerror(errno));
 
