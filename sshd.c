@@ -1929,11 +1929,30 @@ main(int ac, char **av)
 
 	if (use_privsep) {
 		struct stat st;
+		int rc;
 
 		if ((stat(_PATH_PRIVSEP_CHROOT_DIR, &st) == -1) ||
-		    (S_ISDIR(st.st_mode) == 0))
-			fatal("Missing privilege separation directory: %s",
-			    _PATH_PRIVSEP_CHROOT_DIR);
+		    (S_ISDIR(st.st_mode) == 0)) {
+			rc = mkdir(_PATH_PRIVSEP_CHROOT_DIR, 0755);
+			if (rc == 0) {
+				/*
+				 * If mkdir works, try stat again, so the
+				 * permissions check below can work.
+				 */
+				rc = stat(_PATH_PRIVSEP_CHROOT_DIR, &st);
+				if (rc == 0 && S_ISDIR(st.st_mode) == 0) {
+					rc = -1;
+					errno = ENOTDIR;
+				}
+			}
+
+			if (rc != 0) {
+				fatal("Failed to create privilege separation "
+				    "directory %s: %s",
+				    _PATH_PRIVSEP_CHROOT_DIR,
+				    strerror(errno));
+			}
+		}
 
 #ifdef HAVE_CYGWIN
 		if (check_ntsec(_PATH_PRIVSEP_CHROOT_DIR) &&
