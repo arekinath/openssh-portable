@@ -35,6 +35,7 @@ STRIP_OPT=@STRIP_OPT@
 TEST_SHELL=@TEST_SHELL@
 
 PATHS= -DSSHDIR=\"$(sysconfdir)\" \
+	-DSSHKEYDIR=\"$(keydir)\" \
 	-D_PATH_SSH_PROGRAM=\"$(SSH_PROGRAM)\" \
 	-D_PATH_SSH_ASKPASS_DEFAULT=\"$(ASKPASS_PROGRAM)\" \
 	-D_PATH_SFTP_SERVER=\"$(SFTP_SERVER)\" \
@@ -359,6 +360,7 @@ install-files:
 	$(srcdir)/mkinstalldirs $(SMFNETMANIDIR)
 	$(INSTALL) -m 555 smf/method $(SMFMETHODDIR)/sshd
 	$(INSTALL) -m 444 smf/manifest.xml $(SMFNETMANIDIR)/ssh.xml
+	mkdir -p $(DESTDIR)$(keydir)
 
 install-sysconf:
 	if [ ! -d $(DESTDIR)$(sysconfdir) ]; then \
