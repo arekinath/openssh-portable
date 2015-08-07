@@ -4652,6 +4652,20 @@ AC_DEFINE_UNQUOTED([_PATH_SSH_PIDDIR], ["$piddir"],
 	[Specify location of ssh.pid])
 AC_SUBST([piddir])
 
+keydir=$sysconfdir
+AC_ARG_WITH([key-dir],
+	[  --with-key-dir=PATH      Specify location of SSH host keys],
+	[
+		if test -n "$withval"  &&  test "x$withval" != "xno"  &&  \
+		    test "x${withval}" != "xyes"; then
+			keydir=$withval
+		fi
+	]
+)
+AC_DEFINE_UNQUOTED([SSHKEYDIR], ["$keydir"],
+	[Specify location of SSH host keys])
+AC_SUBST([keydir])
+
 dnl allow user to disable some login recording features
 AC_ARG_ENABLE([lastlog],
 	[  --disable-lastlog       disable use of lastlog even if detected [no]],
@@ -4956,12 +4970,14 @@ G=`eval echo ${piddir}` ; G=`eval echo ${G}`
 H=`eval echo ${PRIVSEP_PATH}` ; H=`eval echo ${H}`
 I=`eval echo ${user_path}` ; I=`eval echo ${I}`
 J=`eval echo ${superuser_path}` ; J=`eval echo ${J}`
+K=`eval echo ${keydir}` ; K=`eval echo ${K}`
 
 echo ""
 echo "OpenSSH has been configured with the following options:"
 echo "                     User binaries: $B"
 echo "                   System binaries: $C"
 echo "               Configuration files: $D"
+echo "                   Keys and moduli: $K"
 echo "                   Askpass program: $E"
 echo "                      Manual pages: $F"
 echo "                          PID file: $G"
