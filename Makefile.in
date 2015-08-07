@@ -359,6 +359,7 @@ install-files:
 	$(srcdir)/mkinstalldirs $(SMFNETMANIDIR)
 	$(INSTALL) -m 555 smf/method.sh $(SMFMETHODDIR)/sshd
 	$(INSTALL) -m 444 smf/manifest.xml $(SMFNETMANIDIR)/ssh.xml
+	mkdir -p $(DESTDIR)$(keydir)
 
 install-sysconf:
 	if [ ! -d $(DESTDIR)$(sysconfdir) ]; then \
