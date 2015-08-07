@@ -18,6 +18,7 @@ sysconfdir=@sysconfdir@
 piddir=@piddir@
 srcdir=@srcdir@
 top_srcdir=@top_srcdir@
+keydir=@keydir@
 
 DESTDIR=
 VPATH=@srcdir@
@@ -130,11 +131,11 @@ PATHSUBS	= \
 	-e 's|/etc/ssh/sshd_config|$(sysconfdir)/sshd_config|g' \
 	-e 's|/usr/libexec|$(libexecdir)|g' \
 	-e 's|/etc/shosts.equiv|$(sysconfdir)/shosts.equiv|g' \
-	-e 's|/etc/ssh/ssh_host_key|$(sysconfdir)/ssh_host_key|g' \
-	-e 's|/etc/ssh/ssh_host_ecdsa_key|$(sysconfdir)/ssh_host_ecdsa_key|g' \
-	-e 's|/etc/ssh/ssh_host_dsa_key|$(sysconfdir)/ssh_host_dsa_key|g' \
-	-e 's|/etc/ssh/ssh_host_rsa_key|$(sysconfdir)/ssh_host_rsa_key|g' \
-	-e 's|/etc/ssh/ssh_host_ed25519_key|$(sysconfdir)/ssh_host_ed25519_key|g' \
+	-e 's|/etc/ssh/ssh_host_key|$(keydir)/ssh_host_key|g' \
+	-e 's|/etc/ssh/ssh_host_ecdsa_key|$(keydir)/ssh_host_ecdsa_key|g' \
+	-e 's|/etc/ssh/ssh_host_dsa_key|$(keydir)/ssh_host_dsa_key|g' \
+	-e 's|/etc/ssh/ssh_host_rsa_key|$(keydir)/ssh_host_rsa_key|g' \
+	-e 's|/etc/ssh/ssh_host_ed25519_key|$(keydir)/ssh_host_ed25519_key|g' \
 	-e 's|/var/run/sshd.pid|$(piddir)/sshd.pid|g' \
 	-e 's|/etc/moduli|$(sysconfdir)/moduli|g' \
 	-e 's|/etc/ssh/moduli|$(sysconfdir)/moduli|g' \
@@ -359,6 +360,7 @@ install-files:
 	$(srcdir)/mkinstalldirs $(SMFNETMANIDIR)
 	$(INSTALL) -m 555 smf/method.sh $(SMFMETHODDIR)/sshd
 	$(INSTALL) -m 444 smf/manifest.xml $(SMFNETMANIDIR)/ssh.xml
+	mkdir -p $(DESTDIR)$(keydir)
 
 install-sysconf:
 	if [ ! -d $(DESTDIR)$(sysconfdir) ]; then \
