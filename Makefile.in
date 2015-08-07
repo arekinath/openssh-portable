@@ -27,6 +27,8 @@ SFTP_SERVER=$(libexecdir)/sftp-server
 SSH_KEYSIGN=$(libexecdir)/ssh-keysign
 SSH_PKCS11_HELPER=$(libexecdir)/ssh-pkcs11-helper
 ROOTDLIBDIR64=$(DESTDIR)/usr/lib/dtrace/64
+SMFMETHODDIR=$(DESTDIR)/lib/svc/method
+SMFNETMANIDIR=$(DESTDIR)/lib/svc/manifest/network
 PRIVSEP_PATH=@PRIVSEP_PATH@
 SSH_PRIVSEP_USER=@SSH_PRIVSEP_USER@
 STRIP_OPT=@STRIP_OPT@
@@ -359,6 +361,10 @@ install-files:
 	-rm -f $(DESTDIR)$(mandir)/$(mansubdir)1/slogin.1
 	ln -s ./ssh.1 $(DESTDIR)$(mandir)/$(mansubdir)1/slogin.1
 	mkdir -p $(ROOTDLIBDIR64) && cp $(srcdir)/sftp64.d $(ROOTDLIBDIR64)/sftp64.d
+	$(srcdir)/mkinstalldirs $(SMFMETHODDIR)
+	$(srcdir)/mkinstalldirs $(SMFNETMANIDIR)
+	$(INSTALL) -m 555 smf/method.sh $(SMFMETHODDIR)/sshd
+	$(INSTALL) -m 444 smf/manifest.xml $(SMFNETMANIDIR)/ssh.xml
 
 install-sysconf:
 	if [ ! -d $(DESTDIR)$(sysconfdir) ]; then \
