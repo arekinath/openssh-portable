@@ -4580,6 +4580,20 @@ AC_DEFINE_UNQUOTED([_PATH_SSH_PIDDIR], ["$piddir"],
 	[Specify location of ssh.pid])
 AC_SUBST([piddir])
 
+keydir=/etc/ssh
+AC_ARG_WITH([key-dir],
+	[  --with-key-dir=PATH      Specify location of SSH host keys],
+	[
+		if test -n "$withval"  &&  test "x$withval" != "xno"  &&  \
+		    test "x${withval}" != "xyes"; then
+			keydir=$withval
+		fi
+	]
+)
+AC_DEFINE_UNQUOTED([SSHKEYDIR], ["$keydir"],
+	[Specify location of SSH host keys])
+AC_SUBST([keydir])
+
 dnl allow user to disable some login recording features
 AC_ARG_ENABLE([lastlog],
 	[  --disable-lastlog       disable use of lastlog even if detected [no]],
