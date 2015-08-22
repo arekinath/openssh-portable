@@ -4031,6 +4031,11 @@ AC_ARG_WITH([kerberos5],
 		AC_PATH_PROG([KRB5CONF], [krb5-config],
 			     [$KRB5ROOT/bin/krb5-config],
 			     [$KRB5ROOT/bin:$PATH])
+		# Illumos has GSS but krb5-config doesn't talk about it
+		# Fall back to regular probing for libs
+		if uname -rs | grep 'SunOS 5.11' ; then
+			unset KRB5CONF
+		fi
 		if test -x $KRB5CONF ; then
 			K5CFLAGS="`$KRB5CONF --cflags`"
 			K5LIBS="`$KRB5CONF --libs`"
