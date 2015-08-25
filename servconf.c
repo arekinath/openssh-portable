@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <deflt.h>
 #include <errno.h>
 #ifdef HAVE_UTIL_H
 #include <util.h>
@@ -192,6 +193,64 @@ option_clear_or_none(const char *o)
 	return o == NULL || strcasecmp(o, "none") == 0;
 }
 
+/*
+ * Reads /etc/default/login and defaults several ServerOptions:
+ *
+ * PermitRootLogin
+ * PermitEmptyPasswords
+ * LoginGraceTime
+ *
+ * CONSOLE=*      -> PermitRootLogin=without-password
+ * #CONSOLE=*     -> PermitRootLogin=yes
+ *
+ * PASSREQ=YES    -> PermitEmptyPasswords=no
+ * PASSREQ=NO     -> PermitEmptyPasswords=yes
+ * #PASSREQ=*     -> PermitEmptyPasswords=no
+ *
+ * TIMEOUT=<secs> -> LoginGraceTime=<secs>
+ * #TIMEOUT=<secs> -> LoginGraceTime=300
+ */
+static void
+deflt_fill_default_server_options(ServerOptions *options)
+{
+	int	flags;
+	char	*ptr;
+
+	if (defopen(_PATH_DEFAULT_LOGIN))
+		return;
+
+	/* Ignore case */
+	flags = defcntl(DC_GETFLAGS, 0);
+	TURNOFF(flags, DC_CASE);
+	(void) defcntl(DC_SETFLAGS, flags);
+
+	if (options->permit_root_login == PERMIT_NOT_SET &&
+	    (ptr = defread("CONSOLE=")) != NULL)
+		options->permit_root_login = PERMIT_NO_PASSWD;
+
+	if (options->permit_empty_passwd == -1 &&
+	    (ptr = defread("PASSREQ=")) != NULL) {
+		if (strcasecmp("YES", ptr) == 0)
+			options->permit_empty_passwd = 0;
+		else if (strcasecmp("NO", ptr) == 0)
+			options->permit_empty_passwd = 1;
+	}
+
+	if (options->max_authtries == -1 &&
+	    (ptr = defread("RETRIES=")) != NULL) {
+		options->max_authtries = atoi(ptr);
+	}
+
+	if (options->login_grace_time == -1) {
+		if ((ptr = defread("TIMEOUT=")) != NULL)
+			options->login_grace_time = (unsigned)atoi(ptr);
+		else
+			options->login_grace_time = 300;
+	}
+
+	(void) defopen((char *)NULL);
+}
+
 void
 fill_default_server_options(ServerOptions *options)
 {
@@ -205,6 +264,8 @@ fill_default_server_options(ServerOptions *options)
 #else
 		options->use_pam = 0;
 #endif
+
+	deflt_fill_default_server_options(options);
 
 	/* Standard Options */
 	if (options->protocol == SSH_PROTO_UNKNOWN)
