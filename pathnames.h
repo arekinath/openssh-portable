@@ -47,6 +47,7 @@
 #define _PATH_HOST_ED25519_KEY_FILE	SSHKEYDIR "/ssh_host_ed25519_key"
 #define _PATH_HOST_RSA_KEY_FILE		SSHKEYDIR "/ssh_host_rsa_key"
 #define _PATH_DH_MODULI			SSHKEYDIR "/moduli"
+#define _PATH_DEFAULT_LOGIN		ETCDIR "/default/login"
 /* Backwards compatibility */
 #define _PATH_DH_PRIMES			SSHDIR "/primes"
 
