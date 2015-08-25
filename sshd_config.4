@@ -1229,7 +1229,13 @@ Specifies the maximum number of authentication attempts permitted per
 connection.
 Once the number of failures reaches half this value,
 additional failures are logged.
-The default is 6.
+The default is 6, or the value given by
+.Dq RETRIES=
+in the file
+.Dq /etc/default/login ,
+if available (see
+.Xr login 1
+).
 .It Cm MaxSessions
 Specifies the maximum number of open shell, login or subsystem (e.g. sftp)
 sessions permitted per network connection.
@@ -1291,6 +1297,13 @@ When password authentication is allowed, it specifies whether the
 server allows login to accounts with empty password strings.
 The default is
 .Cm no .
+unless
+.Dq PASSREQ=YES
+is present in
+.Dq /etc/default/login
+(see
+.Xr login 1
+).
 .It Cm PermitListen
 Specifies the addresses/ports on which a remote TCP port forwarding may listen.
 The listen specification must be one of the following forms:
