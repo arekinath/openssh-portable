@@ -1010,6 +1010,18 @@ child_set_env(char ***envp, u_int *envsizep, const char *name,
 }
 
 /*
+ * If the given environment variable is set in the daemon's environment,
+ * push it into the new child as well. If it is unset, do nothing.
+ */
+static void
+child_inherit_env(char ***envp, u_int *envsizep, const char *name)
+{
+	char *value;
+	if ((value = getenv(name)) != NULL)
+		child_set_env(envp, envsizep, name, value);
+}
+
+/*
  * Reads environment variables from the given file and adds/overrides them
  * into the environment.  If the file does not exist, this does nothing.
  * Otherwise, it must consist of empty lines, comments (line starts with '#')
@@ -1171,6 +1183,16 @@ do_setup_env(Session *s, const char *shell)
 	ssh_gssapi_do_child(&env, &envsize);
 #endif
 
+	/* Default to the system-wide locale/language settings. */
+	child_inherit_env(&env, &envsize, "LANG");
+	child_inherit_env(&env, &envsize, "LC_ALL");
+	child_inherit_env(&env, &envsize, "LC_CTYPE");
+	child_inherit_env(&env, &envsize, "LC_COLLATE");
+	child_inherit_env(&env, &envsize, "LC_TIME");
+	child_inherit_env(&env, &envsize, "LC_NUMERIC");
+	child_inherit_env(&env, &envsize, "LC_MONETARY");
+	child_inherit_env(&env, &envsize, "LC_MESSAGES");
+
 	if (!options.use_login) {
 		/* Set basic environment. */
 		for (i = 0; i < s->num_env; i++)
@@ -1215,8 +1237,8 @@ do_setup_env(Session *s, const char *shell)
 		/* Normal systems set SHELL by default. */
 		child_set_env(&env, &envsize, "SHELL", shell);
 	}
-	if (getenv("TZ"))
-		child_set_env(&env, &envsize, "TZ", getenv("TZ"));
+
+	child_inherit_env(&env, &envsize, "TZ");
 
 	/* Set custom environment options from RSA authentication. */
 	if (!options.use_login) {
