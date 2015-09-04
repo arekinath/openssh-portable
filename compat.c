@@ -55,7 +55,8 @@ compat_datafellows(const char *version)
 					SSH_BUG_SIGTYPE},
 		{ "OpenSSH_3.*",	SSH_OLD_FORWARD_ADDR|SSH_BUG_SIGTYPE },
 		{ "Sun_SSH_1.0*",	SSH_BUG_NOREKEY|SSH_BUG_EXTEOF|
-					SSH_BUG_SIGTYPE},
+					SSH_BUG_SIGTYPE|SSH_OLD_DHGEX},
+		{ "Sun_SSH_1.5*",	SSH_BUG_SIGTYPE|SSH_OLD_DHGEX},
 		{ "OpenSSH_2*,"
 		  "OpenSSH_3*,"
 		  "OpenSSH_4*",		SSH_BUG_SIGTYPE },
@@ -183,6 +184,60 @@ proto_spec(const char *spec)
 	return ret;
 }
 
+/*
+ * Filters a proposal string, excluding any algorithm matching the 'filter'
+ * pattern list.
+ */
+static char *
+filter_proposal(char *proposal, const char *filter)
+{
+	struct sshbuf *b;
+	char *orig_prop, *fix_prop;
+	char *cp, *tmp;
+
+	b = sshbuf_new();
+	tmp = orig_prop = xstrdup(proposal);
+	while ((cp = strsep(&tmp, ",")) != NULL) {
+		if (match_pattern_list(cp, filter, 0) != 1) {
+			if (sshbuf_len(b) > 0)
+				sshbuf_put_u8(b, ',');
+			sshbuf_put(b, cp, strlen(cp));
+		} else
+			debug2("Compat: skipping algorithm \"%s\"", cp);
+	}
+	sshbuf_put_u8(b, 0);
+	fix_prop = xstrdup((char *)sshbuf_ptr(b));
+	sshbuf_free(b);
+	free(orig_prop);
+
+	return fix_prop;
+}
+
+/*
+ * Adds an algorithm to the end of a proposal list, only if the algorithm is
+ * not already present.
+ */
+static char *
+append_proposal(char *proposal, const char *append)
+{
+	struct sshbuf *b;
+	char *fix_prop;
+
+	if (strstr(proposal, append) != NULL)
+		return proposal;
+
+	b = sshbuf_new();
+	sshbuf_put(b, proposal, strlen(proposal));
+	if (sshbuf_len(b) > 0)
+		sshbuf_put_u8(b, ',');
+	sshbuf_put(b, append, strlen(append));
+	sshbuf_put_u8(b, 0);
+	fix_prop = xstrdup((char *)sshbuf_ptr(&b));
+	sshbuf_free(&b);
+
+	return fix_prop;
+}
+
 char *
 compat_cipher_proposal(char *cipher_prop)
 {
@@ -222,10 +277,10 @@ compat_kex_proposal(char *p)
 		    "curve25519-sha256@libssh.org")) == NULL)
 			fatal("match_filter_blacklist failed");
 	if ((datafellows & SSH_OLD_DHGEX) != 0) {
-		if ((p = match_filter_blacklist(p,
-		    "diffie-hellman-group-exchange-sha256,"
-		    "diffie-hellman-group-exchange-sha1")) == NULL)
-			fatal("match_filter_blacklist failed");
+		p = filter_proposal(p, "diffie-hellman-group-exchange-sha256");
+		p = filter_proposal(p, "diffie-hellman-group-exchange-sha1");
+		p = append_proposal(p, "diffie-hellman-group14-sha1");
+		p = append_proposal(p, "diffie-hellman-group1-sha1");
 	}
 	debug2("%s: compat KEX proposal: %s", __func__, p);
 	if (*p == '\0')
