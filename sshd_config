@@ -27,6 +27,10 @@ Port 22
 SyslogFacility AUTH
 LogLevel INFO
 
+# Use the client's locale/language settings
+#AcceptEnv LANG LC_ALL LC_CTYPE LC_COLLATE LC_TIME LC_NUMERIC
+#AcceptEnv LC_MONETARY LC_MESSAGES
+
 # Authentication:
 
 #LoginGraceTime 2m
