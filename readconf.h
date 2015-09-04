@@ -213,6 +213,7 @@ typedef struct {
 
 void     initialize_options(Options *);
 void     fill_default_options(Options *);
+void	 fill_early_default_options(Options *);
 void	 fill_default_options_for_canonicalization(Options *);
 int	 process_config_line(Options *, struct passwd *, const char *,
     const char *, char *, const char *, int, int *, int);
