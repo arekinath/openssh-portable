@@ -221,7 +221,8 @@ char	*ssh_connection_hash(const char *thishost, const char *host,
 #endif
 
 void     initialize_options(Options *);
-int      fill_default_options(Options *);
+int		 fill_default_options(Options *);
+int		 fill_early_default_options(Options *);
 void	 fill_default_options_for_canonicalization(Options *);
 void	 free_options(Options *o);
 int	 process_config_line(Options *, struct passwd *, const char *,

@@ -320,6 +320,22 @@ assemble_algorithms(ServerOptions *o)
 	free(def_sig);
 }
 
+static void
+opt_array_delete(const char *file, const int line, const char *directive,
+    char ***array, u_int *lp, const char *s)
+{
+	u_int i, j;
+	for (i = 0; i < *lp; ++i) {
+		if (strcmp((*array)[i], s) == 0) {
+			free((*array)[i]);
+			for (j = i + 1; j < *lp; ++j) {
+				(*array)[j - 1] = (*array)[j];
+			}
+			(*lp)--;
+		}
+	}
+}
+
 void
 servconf_add_hostkey(const char *file, const int line,
     ServerOptions *options, const char *path, int userprovided)
@@ -341,6 +357,36 @@ servconf_add_hostcert(const char *file, const int line,
 	opt_array_append(file, line, "HostCertificate",
 	    &options->host_cert_files, &options->num_host_cert_files, apath);
 	free(apath);
+}
+
+void
+fill_early_default_server_options(ServerOptions *options)
+{
+	options->num_accept_env = 0;
+	opt_array_append("[default]", 0, "AcceptEnv",
+	    &options->accept_env, &options->num_accept_env,
+	    "LANG");
+	opt_array_append("[default]", 0, "AcceptEnv",
+	    &options->accept_env, &options->num_accept_env,
+	    "LC_ALL");
+	opt_array_append("[default]", 0, "AcceptEnv",
+	    &options->accept_env, &options->num_accept_env,
+	    "LC_CTYPE");
+	opt_array_append("[default]", 0, "AcceptEnv",
+	    &options->accept_env, &options->num_accept_env,
+	    "LC_COLLATE");
+	opt_array_append("[default]", 0, "AcceptEnv",
+	    &options->accept_env, &options->num_accept_env,
+	    "LC_TIME");
+	opt_array_append("[default]", 0, "AcceptEnv",
+	    &options->accept_env, &options->num_accept_env,
+	    "LC_NUMERIC");
+	opt_array_append("[default]", 0, "AcceptEnv",
+	    &options->accept_env, &options->num_accept_env,
+	    "LC_MONETARY");
+	opt_array_append("[default]", 0, "AcceptEnv",
+	    &options->accept_env, &options->num_accept_env,
+	    "LC_MESSAGES");
 }
 
 void
@@ -2139,6 +2185,19 @@ process_server_config_line_depth(ServerOptions *options, char *line,
 				    filename, linenum);
 			if (!*activep)
 				continue;
+			if (arg[0] == '-') {
+				opt_array_delete(filename, linenum, "AcceptEnv",
+				    &options->accept_env,
+				    &options->num_accept_env,
+				    &arg[1]);
+				break;
+			}
+			if (strcmp(arg, "none") == 0) {
+				u_int j;
+				for (j = 0; j < options->num_accept_env; ++j)
+					free(options->accept_env[j]);
+				options->num_accept_env = 0;
+			}
 			opt_array_append(filename, linenum, "AcceptEnv",
 			    &options->accept_env, &options->num_accept_env,
 			    arg);

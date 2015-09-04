@@ -1152,6 +1152,9 @@ main(int ac, char **av)
 	if (debug_flag)
 		logit("%s, %s", SSH_RELEASE, SSH_OPENSSL_VERSION);
 
+	if (fill_early_default_options(&options) != 0)
+		cleanup_exit(255);
+
 	/* Parse the configuration files */
 	process_config_files(host_arg, pw, 0, &want_final_pass);
 	if (want_final_pass)
