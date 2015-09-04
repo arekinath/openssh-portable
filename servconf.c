@@ -155,7 +155,7 @@ initialize_server_options(ServerOptions *options)
 	options->client_alive_interval = -1;
 	options->client_alive_count_max = -1;
 	options->num_authkeys_files = 0;
-	options->num_accept_env = 0;
+	options->num_accept_env = -1;
 	options->permit_tun = -1;
 	options->num_permitted_opens = -1;
 	options->adm_forced_command = NULL;
@@ -423,6 +423,25 @@ fill_default_server_options(ServerOptions *options)
 		options->max_sessions = DEFAULT_SESSIONS_MAX;
 	if (options->use_dns == -1)
 		options->use_dns = 0;
+	if (options->num_accept_env == -1) {
+		options->num_accept_env = 0;
+		options->accept_env[options->num_accept_env++] =
+		    xstrdup("LANG");
+		options->accept_env[options->num_accept_env++] =
+		    xstrdup("LC_ALL");
+		options->accept_env[options->num_accept_env++] =
+		    xstrdup("LC_CTYPE");
+		options->accept_env[options->num_accept_env++] =
+		    xstrdup("LC_COLLATE");
+		options->accept_env[options->num_accept_env++] =
+		    xstrdup("LC_TIME");
+		options->accept_env[options->num_accept_env++] =
+		    xstrdup("LC_NUMERIC");
+		options->accept_env[options->num_accept_env++] =
+		    xstrdup("LC_MONETARY");
+		options->accept_env[options->num_accept_env++] =
+		    xstrdup("LC_MESSAGES");
+	}
 	if (options->client_alive_interval == -1)
 		options->client_alive_interval = 0;
 	if (options->client_alive_count_max == -1)
@@ -1773,10 +1792,14 @@ process_server_config_line(ServerOptions *options, char *line,
 			if (strchr(arg, '=') != NULL)
 				fatal("%s line %d: Invalid environment name.",
 				    filename, linenum);
+			if (options->num_accept_env == -1)
+				options->num_accept_env = 0;
 			if (options->num_accept_env >= MAX_ACCEPT_ENV)
 				fatal("%s line %d: too many allow env.",
 				    filename, linenum);
 			if (!*activep)
+				continue;
+			if (strcmp(arg, "none") == 0)
 				continue;
 			options->accept_env[options->num_accept_env++] =
 			    xstrdup(arg);
@@ -2219,7 +2242,7 @@ copy_set_server_options(ServerOptions *dst, ServerOptions *src, int preauth)
 	} \
 } while(0)
 #define M_CP_STRARRAYOPT(n, num_n) do {\
-	if (src->num_n != 0) { \
+	if (src->num_n != 0 && src->num_n != -1) { \
 		for (dst->num_n = 0; dst->num_n < src->num_n; dst->num_n++) \
 			dst->n[dst->num_n] = xstrdup(src->n[dst->num_n]); \
 	} \
