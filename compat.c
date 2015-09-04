@@ -92,7 +92,9 @@ compat_datafellows(const char *version)
 		  "OpenSSH_3.0*,"
 		  "OpenSSH_3.1*",	SSH_BUG_EXTEOF|SSH_OLD_FORWARD_ADDR},
 		{ "OpenSSH_3.*",	SSH_OLD_FORWARD_ADDR },
-		{ "Sun_SSH_1.0*",	SSH_BUG_NOREKEY|SSH_BUG_EXTEOF},
+		{ "Sun_SSH_1.0*",	SSH_BUG_NOREKEY|SSH_BUG_EXTEOF|
+					SSH_OLD_DHGEX},
+		{ "Sun_SSH_1.5*",	SSH_OLD_DHGEX},
 		{ "OpenSSH_4*",		0 },
 		{ "OpenSSH_5*",		SSH_NEW_OPENSSH|SSH_BUG_DYNAMIC_RPORT},
 		{ "OpenSSH_6.6.1*",	SSH_NEW_OPENSSH},
@@ -266,6 +268,31 @@ filter_proposal(char *proposal, const char *filter)
 	return fix_prop;
 }
 
+/*
+ * Adds an algorithm to the end of a proposal list, only if the algorithm is
+ * not already present.
+ */
+static char *
+append_proposal(char *proposal, const char *append)
+{
+	Buffer b;
+	char *fix_prop;
+
+	if (strstr(proposal, append) != NULL)
+		return proposal;
+
+	buffer_init(&b);
+	buffer_append(&b, proposal, strlen(proposal));
+	if (buffer_len(&b) > 0)
+		buffer_append(&b, ",", 1);
+	buffer_append(&b, append, strlen(append));
+	buffer_append(&b, "\0", 1);
+	fix_prop = xstrdup((char *)buffer_ptr(&b));
+	buffer_free(&b);
+
+	return fix_prop;
+}
+
 char *
 compat_cipher_proposal(char *cipher_prop)
 {
@@ -303,6 +330,8 @@ compat_kex_proposal(char *p)
 	if ((datafellows & SSH_OLD_DHGEX) != 0) {
 		p = filter_proposal(p, "diffie-hellman-group-exchange-sha256");
 		p = filter_proposal(p, "diffie-hellman-group-exchange-sha1");
+		p = append_proposal(p, "diffie-hellman-group14-sha1");
+		p = append_proposal(p, "diffie-hellman-group1-sha1");
 	}
 	debug2("%s: compat KEX proposal: %s", __func__, p);
 	if (*p == '\0')
