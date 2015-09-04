@@ -1091,6 +1091,8 @@ main(int ac, char **av)
 #endif
 		);
 
+	fill_early_default_options(&options);
+
 	/* Parse the configuration files */
 	process_config_files(host_arg, pw, 0);
 

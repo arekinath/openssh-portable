@@ -2024,6 +2024,23 @@ fill_default_options_for_canonicalization(Options *options)
 		options->canonicalize_hostname = SSH_CANONICALISE_NO;
 }
 
+void
+fill_early_default_options(Options *options)
+{
+	options->send_env = xrecallocarray(
+	    options->send_env, options->num_send_env,
+	    options->num_send_env + 8,
+	    sizeof(*options->send_env));
+	options->send_env[options->num_send_env++] = xstrdup("LANG");
+	options->send_env[options->num_send_env++] = xstrdup("LC_ALL");
+	options->send_env[options->num_send_env++] = xstrdup("LC_CTYPE");
+	options->send_env[options->num_send_env++] = xstrdup("LC_COLLATE");
+	options->send_env[options->num_send_env++] = xstrdup("LC_TIME");
+	options->send_env[options->num_send_env++] = xstrdup("LC_NUMERIC");
+	options->send_env[options->num_send_env++] = xstrdup("LC_MONETARY");
+	options->send_env[options->num_send_env++] = xstrdup("LC_MESSAGES");
+}
+
 /*
  * Called after processing other sources of option data, this fills those
  * options for which no value has been specified with their default values.
