@@ -37,6 +37,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <assert.h>
 
 #include "xmalloc.h"
 #include "sshkey.h"
@@ -101,7 +102,8 @@ int print_fingerprint = 0;
 int print_bubblebabble = 0;
 
 /* Hash algorithm to use for fingerprints. */
-int fingerprint_hash = SSH_FP_HASH_DEFAULT;
+int fingerprint_hash = SSH_DIGEST_MD5;
+int fingerprint_compat = 1;
 
 /* The identity file name, given on the command line or entered by the user. */
 char identity_file[1024];
@@ -773,6 +775,7 @@ do_download(struct passwd *pw)
 	enum sshkey_fp_rep rep;
 	int fptype;
 	char *fp, *ra;
+	char *fpp;
 
 	fptype = print_bubblebabble ? SSH_DIGEST_SHA1 : fingerprint_hash;
 	rep =    print_bubblebabble ? SSH_FP_BUBBLEBABBLE : SSH_FP_DEFAULT;
@@ -788,8 +791,13 @@ do_download(struct passwd *pw)
 			    SSH_FP_RANDOMART);
 			if (fp == NULL || ra == NULL)
 				fatal("%s: sshkey_fingerprint fail", __func__);
+			fpp = fp;
+			if (fingerprint_compat == 1) {
+				assert(strncmp(fp, "MD5:", 4) == 0);
+				fpp += 4;
+			}
 			printf("%u %s %s (PKCS11 key)\n", sshkey_size(keys[i]),
-			    fp, sshkey_type(keys[i]));
+			    fpp, sshkey_type(keys[i]));
 			if (log_level >= SYSLOG_LEVEL_VERBOSE)
 				printf("%s\n", ra);
 			free(ra);
@@ -833,7 +841,7 @@ try_read_key(char **cpp)
 static void
 fingerprint_one_key(const struct sshkey *public, const char *comment)
 {
-	char *fp = NULL, *ra = NULL;
+	char *fp = NULL, *ra = NULL, *fpp;
 	enum sshkey_fp_rep rep;
 	int fptype;
 
@@ -843,7 +851,12 @@ fingerprint_one_key(const struct sshkey *public, const char *comment)
 	ra = sshkey_fingerprint(public, fingerprint_hash, SSH_FP_RANDOMART);
 	if (fp == NULL || ra == NULL)
 		fatal("%s: sshkey_fingerprint failed", __func__);
-	printf("%u %s %s (%s)\n", sshkey_size(public), fp,
+	fpp = fp;
+	if (!print_bubblebabble && fingerprint_compat == 1) {
+		assert(strncmp(fp, "MD5:", 4) == 0);
+		fpp += 4;
+	}
+	printf("%u %s %s (%s)\n", sshkey_size(public), fpp,
 	    comment ? comment : "no comment", sshkey_type(public));
 	if (log_level >= SYSLOG_LEVEL_VERBOSE)
 		printf("%s\n", ra);
@@ -2297,6 +2310,7 @@ main(int argc, char **argv)
 			break;
 		case 'E':
 			fingerprint_hash = ssh_digest_alg_by_name(optarg);
+			fingerprint_compat = 0;
 			if (fingerprint_hash == -1)
 				fatal("Invalid hash algorithm \"%s\"", optarg);
 			break;
