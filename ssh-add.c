@@ -52,6 +52,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <assert.h>
 
 #include "xmalloc.h"
 #include "ssh.h"
@@ -82,7 +83,8 @@ static char *default_files[] = {
 	NULL
 };
 
-static int fingerprint_hash = SSH_FP_HASH_DEFAULT;
+static int fingerprint_hash = SSH_DIGEST_MD5;
+static int fingerprint_compat = 1;
 
 /* Default lifetime (0 == forever) */
 static int lifetime = 0;
@@ -420,7 +422,7 @@ update_card(int agent_fd, int add, const char *id, int qflag)
 static int
 list_identities(int agent_fd, int do_fp)
 {
-	char *fp;
+	char *fp, *fpp;
 	int r;
 	struct ssh_identitylist *idlist;
 	u_int32_t left;
@@ -438,8 +440,13 @@ list_identities(int agent_fd, int do_fp)
 		if (do_fp) {
 			fp = sshkey_fingerprint(idlist->keys[i],
 			    fingerprint_hash, SSH_FP_DEFAULT);
+			fpp = fp;
+			if (fingerprint_compat == 1) {
+				assert(strncmp(fp, "MD5:", 4) == 0);
+				fpp += 4;
+			}
 			printf("%u %s %s (%s)\n", sshkey_size(idlist->keys[i]),
-			    fp == NULL ? "(null)" : fp, idlist->comments[i],
+			    fp == NULL ? "(null)" : fpp, idlist->comments[i],
 			    sshkey_type(idlist->keys[i]));
 			free(fp);
 		} else {
@@ -567,6 +574,7 @@ main(int argc, char **argv)
 		switch (ch) {
 		case 'E':
 			fingerprint_hash = ssh_digest_alg_by_name(optarg);
+			fingerprint_compat = 0;
 			if (fingerprint_hash == -1)
 				fatal("Invalid hash algorithm \"%s\"", optarg);
 			break;
