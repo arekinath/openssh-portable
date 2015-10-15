@@ -19,6 +19,7 @@ piddir=@piddir@
 srcdir=@srcdir@
 top_srcdir=@top_srcdir@
 keydir=@keydir@
+modulidir=@modulidir@
 
 DESTDIR=
 VPATH=@srcdir@
@@ -139,8 +140,8 @@ PATHSUBS	= \
 	-e 's|/etc/ssh/ssh_host_rsa_key|$(keydir)/ssh_host_rsa_key|g' \
 	-e 's|/etc/ssh/ssh_host_ed25519_key|$(keydir)/ssh_host_ed25519_key|g' \
 	-e 's|/var/run/sshd.pid|$(piddir)/sshd.pid|g' \
-	-e 's|/etc/moduli|$(sysconfdir)/moduli|g' \
-	-e 's|/etc/ssh/moduli|$(sysconfdir)/moduli|g' \
+	-e 's|/etc/moduli|$(modulidir)/moduli|g' \
+	-e 's|/etc/ssh/moduli|$(modulidir)/moduli|g' \
 	-e 's|/etc/ssh/sshrc|$(sysconfdir)/sshrc|g' \
 	-e 's|/usr/X11R6/bin/xauth|$(XAUTH_PATH)|g' \
 	-e 's|/var/empty|$(PRIVSEP_PATH)|g' \
@@ -367,6 +368,8 @@ install-files:
 	$(INSTALL) -m 555 smf/method.sh $(SMFMETHODDIR)/sshd
 	$(INSTALL) -m 444 smf/manifest.xml $(SMFNETMANIDIR)/ssh.xml
 	mkdir -p $(DESTDIR)$(keydir)
+	$(srcdir)/mkinstalldirs $(DESTDIR)$(modulidir)
+	$(INSTALL) -m 644 moduli.out $(DESTDIR)$(modulidir)/moduli
 
 install-sysconf:
 	if [ ! -d $(DESTDIR)$(sysconfdir) ]; then \
@@ -381,16 +384,6 @@ install-sysconf:
 		$(INSTALL) -m 644 sshd_config.out $(DESTDIR)$(sysconfdir)/sshd_config; \
 	else \
 		echo "$(DESTDIR)$(sysconfdir)/sshd_config already exists, install will not overwrite"; \
-	fi
-	@if [ ! -f $(DESTDIR)$(sysconfdir)/moduli ]; then \
-		if [ -f $(DESTDIR)$(sysconfdir)/primes ]; then \
-			echo "moving $(DESTDIR)$(sysconfdir)/primes to $(DESTDIR)$(sysconfdir)/moduli"; \
-			mv "$(DESTDIR)$(sysconfdir)/primes" "$(DESTDIR)$(sysconfdir)/moduli"; \
-		else \
-			$(INSTALL) -m 644 moduli.out $(DESTDIR)$(sysconfdir)/moduli; \
-		fi ; \
-	else \
-		echo "$(DESTDIR)$(sysconfdir)/moduli already exists, install will not overwrite"; \
 	fi
 
 host-key: ssh-keygen$(EXEEXT)
