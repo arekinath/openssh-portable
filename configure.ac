@@ -4730,6 +4730,21 @@ AC_DEFINE_UNQUOTED([SSHKEYDIR], ["$keydir"],
 	[Specify location of SSH host keys])
 AC_SUBST([keydir])
 
+modulidir=$sysconfdir
+AC_ARG_WITH([sys-moduli],
+	[  --with-sys-moduli=PATH      Specify location for system default moduli],
+	[
+		if test -n "$withval"  &&  test "x$withval" != "xno"  &&  \
+		    test "x${withval}" != "xyes"; then
+			sysmoduli=$withval
+			modulidir=`dirname $sysmoduli`
+			AC_DEFINE_UNQUOTED([_PATH_SYS_MODULI], ["$sysmoduli"],
+				[Specify location for system default moduli])
+		fi
+	]
+)
+AC_SUBST([modulidir])
+
 dnl allow user to disable some login recording features
 AC_ARG_ENABLE([lastlog],
 	[  --disable-lastlog       disable use of lastlog even if detected [no]],
