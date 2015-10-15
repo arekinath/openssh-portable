@@ -151,7 +151,11 @@ choose_dh(int min, int wantbits, int max)
 	int linenum;
 	struct dhgroup dhg;
 
-	if ((f = fopen(_PATH_DH_MODULI, "r")) == NULL) {
+	if ((f = fopen(_PATH_DH_MODULI, "r")) == NULL &&
+#if defined(_PATH_SYS_MODULI)
+	    (f = fopen(_PATH_SYS_MODULI, "r")) == NULL &&
+#endif
+	    (f = fopen(_PATH_DH_PRIMES, "r")) == NULL) {
 		logit("WARNING: could not open %s (%s), using fixed modulus",
 		    _PATH_DH_MODULI, strerror(errno));
 		return (dh_new_group_fallback(max));
