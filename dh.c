@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <unistd.h>
 
 #include <openssl/bn.h>
 #include <openssl/dh.h>
@@ -54,7 +55,19 @@ void dh_set_moduli_file(const char *filename)
 
 static const char * get_moduli_filename(void)
 {
-	return moduli_filename ? moduli_filename : _PATH_DH_MODULI;
+	if (moduli_filename)
+		return (moduli_filename);
+	if (access(_PATH_DH_MODULI, F_OK) == 0)
+		return (_PATH_DH_MODULI);
+#if defined(_PATH_SYS_MODULI)
+	if (access(_PATH_SYS_MODULI, F_OK) == 0)
+		return (_PATH_SYS_MODULI);
+#endif
+#if defined(_PATH_DH_PRIMES)
+	if (access(_PATH_DH_PRIMES, F_OK) == 0)
+		return (_PATH_DH_PRIMES);
+#endif
+	return (_PATH_DH_MODULI);
 }
 
 static int
