@@ -152,6 +152,9 @@ choose_dh(int min, int wantbits, int max)
 	struct dhgroup dhg;
 
 	if ((f = fopen(_PATH_DH_MODULI, "r")) == NULL &&
+#if defined(_PATH_SYS_MODULI)
+	    (f = fopen(_PATH_SYS_MODULI, "r")) == NULL &&
+#endif
 	    (f = fopen(_PATH_DH_PRIMES, "r")) == NULL) {
 		logit("WARNING: %s does not exist, using fixed modulus",
 		    _PATH_DH_MODULI);
