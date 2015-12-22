@@ -66,7 +66,7 @@
 # define AESGCM_CIPHER_MODES
 #endif
 
-#ifdef HAVE_EVP_SHA256
+#ifdef HAVE_SUNW_EVP_SHA256
 # define KEX_SHA256_METHODS \
 	"diffie-hellman-group-exchange-sha256,"
 #define	SHA2_HMAC_MODES \
@@ -78,7 +78,7 @@
 #endif
 
 #ifdef WITH_OPENSSL
-# ifdef HAVE_EVP_SHA256
+# ifdef HAVE_SUNW_EVP_SHA256
 #  define KEX_CURVE25519_METHODS "curve25519-sha256@libssh.org,"
 # else
 #  define KEX_CURVE25519_METHODS ""

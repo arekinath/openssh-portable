@@ -2419,8 +2419,8 @@ AC_ARG_WITH([ssl-engine],
 )
 
 if test "x$openssl" = "xyes" ; then
-	LIBS="-lcrypto $LIBS"
-	AC_TRY_LINK_FUNC([RAND_add], [AC_DEFINE([HAVE_OPENSSL], [1],
+	LIBS="-lsunw_crypto $LIBS"
+	AC_TRY_LINK_FUNC([sunw_RAND_add], [AC_DEFINE([HAVE_OPENSSL], [1],
 		[Define if your ssl headers are included
 		with #include <openssl/header.h>])],
 		[
@@ -2433,7 +2433,7 @@ if test "x$openssl" = "xyes" ; then
 			CPPFLAGS="-I/usr/local/ssl/include ${saved_CPPFLAGS}"
 			AC_CHECK_HEADER([openssl/opensslv.h], ,
 			    [AC_MSG_ERROR([*** OpenSSL headers missing - please install first or check config.log ***])])
-			AC_TRY_LINK_FUNC([RAND_add], [AC_DEFINE([HAVE_OPENSSL])],
+			AC_TRY_LINK_FUNC([sunw_RAND_add], [AC_DEFINE([HAVE_OPENSSL])],
 				[
 					AC_MSG_ERROR([*** Can't find recent OpenSSL libcrypto (see config.log for details) ***])
 				]
@@ -2580,16 +2580,16 @@ if test "x$openssl" = "xyes" ; then
 	)
 
 	AC_CHECK_FUNCS([ \
-		BN_is_prime_ex \
-		DSA_generate_parameters_ex \
-		EVP_DigestInit_ex \
-		EVP_DigestFinal_ex \
-		EVP_MD_CTX_init \
-		EVP_MD_CTX_cleanup \
-		EVP_MD_CTX_copy_ex \
-		HMAC_CTX_init \
-		RSA_generate_key_ex \
-		RSA_get_default_method \
+		sunw_BN_is_prime_ex \
+		sunw_DSA_generate_parameters_ex \
+		sunw_EVP_DigestInit_ex \
+		sunw_EVP_DigestFinal_ex \
+		sunw_EVP_MD_CTX_init \
+		sunw_EVP_MD_CTX_cleanup \
+		sunw_EVP_MD_CTX_copy_ex \
+		sunw_HMAC_CTX_init \
+		sunw_RSA_generate_key_ex \
+		sunw_RSA_get_default_method \
 	])
 
 	if test "x$openssl_engine" = "xyes" ; then
@@ -2674,8 +2674,8 @@ if test "x$openssl" = "xyes" ; then
 		]
 	)
 
-	AC_SEARCH_LIBS([EVP_CIPHER_CTX_ctrl], [crypto],
-		[AC_DEFINE([HAVE_EVP_CIPHER_CTX_CTRL], [1],
+	AC_SEARCH_LIBS([sunw_EVP_CIPHER_CTX_ctrl], [sunw_crypto],
+		[AC_DEFINE([HAVE_SUNW_EVP_CIPHER_CTX_CTRL], [1],
 		    [Define if libcrypto has EVP_CIPHER_CTX_ctrl])])
 
 	AC_MSG_CHECKING([if EVP_DigestUpdate returns an int])
@@ -2711,7 +2711,7 @@ if test "x$openssl" = "xyes" ; then
 	AC_CHECK_FUNCS([crypt DES_crypt])
 
 	# Search for SHA256 support in libc and/or OpenSSL
-	AC_CHECK_FUNCS([SHA256_Update EVP_sha256], ,
+	AC_CHECK_FUNCS([sunw_SHA256_Update sunw_EVP_sha256], ,
 	    [unsupported_algorithms="$unsupported_algorithms \
 		hmac-sha2-256 hmac-sha2-512 \
 		diffie-hellman-group-exchange-sha256 \
@@ -2719,7 +2719,7 @@ if test "x$openssl" = "xyes" ; then
 	     ]
 	)
 	# Search for RIPE-MD support in OpenSSL
-	AC_CHECK_FUNCS([EVP_ripemd160], ,
+	AC_CHECK_FUNCS([sunw_EVP_ripemd160], ,
 	    [unsupported_algorithms="$unsupported_algorithms \
 		hmac-ripemd160
 		hmac-ripemd160@openssh.com

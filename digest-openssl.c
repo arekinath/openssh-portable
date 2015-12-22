@@ -32,14 +32,14 @@
 #include "digest.h"
 #include "ssherr.h"
 
-#ifndef HAVE_EVP_RIPEMD160
+#ifndef HAVE_SUNW_EVP_RIPEMD160
 # define EVP_ripemd160 NULL
-#endif /* HAVE_EVP_RIPEMD160 */
-#ifndef HAVE_EVP_SHA256
+#endif /* HAVE_SUNW_EVP_RIPEMD160 */
+#ifndef HAVE_SUNW_EVP_SHA256
 # define EVP_sha256 NULL
 # define EVP_sha384 NULL
 # define EVP_sha512 NULL
-#endif /* HAVE_EVP_SHA256 */
+#endif /* HAVE_SUNW_EVP_SHA256 */
 
 struct ssh_digest_ctx {
 	int alg;
