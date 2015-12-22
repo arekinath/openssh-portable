@@ -2616,8 +2616,8 @@ AC_ARG_WITH([ssl-engine],
 )
 
 if test "x$openssl" = "xyes" ; then
-	LIBS="-lcrypto $LIBS"
-	AC_TRY_LINK_FUNC([RAND_add], [AC_DEFINE([HAVE_OPENSSL], [1],
+	LIBS="-lsunw_crypto $LIBS"
+	AC_TRY_LINK_FUNC([sunw_RAND_add], [AC_DEFINE([HAVE_OPENSSL], [1],
 		[Define if your ssl headers are included
 		with #include <openssl/header.h>])],
 		[
@@ -2630,7 +2630,7 @@ if test "x$openssl" = "xyes" ; then
 			CPPFLAGS="-I/usr/local/ssl/include ${saved_CPPFLAGS}"
 			AC_CHECK_HEADER([openssl/opensslv.h], ,
 			    [AC_MSG_ERROR([*** OpenSSL headers missing - please install first or check config.log ***])])
-			AC_TRY_LINK_FUNC([RAND_add], [AC_DEFINE([HAVE_OPENSSL])],
+			AC_TRY_LINK_FUNC([sunw_RAND_add], [AC_DEFINE([HAVE_OPENSSL])],
 				[
 					AC_MSG_ERROR([*** Can't find recent OpenSSL libcrypto (see config.log for details) ***])
 				]
@@ -2787,16 +2787,16 @@ if test "x$openssl" = "xyes" ; then
 	)
 
 	AC_CHECK_FUNCS([ \
-		BN_is_prime_ex \
-		DSA_generate_parameters_ex \
-		EVP_DigestInit_ex \
-		EVP_DigestFinal_ex \
-		EVP_MD_CTX_init \
-		EVP_MD_CTX_cleanup \
-		EVP_MD_CTX_copy_ex \
-		HMAC_CTX_init \
-		RSA_generate_key_ex \
-		RSA_get_default_method \
+		sunw_BN_is_prime_ex \
+		sunw_DSA_generate_parameters_ex \
+		sunw_EVP_DigestInit_ex \
+		sunw_EVP_DigestFinal_ex \
+		sunw_EVP_MD_CTX_init \
+		sunw_EVP_MD_CTX_cleanup \
+		sunw_EVP_MD_CTX_copy_ex \
+		sunw_HMAC_CTX_init \
+		sunw_RSA_generate_key_ex \
+		sunw_RSA_get_default_method \
 	])
 
 	if test "x$openssl_engine" = "xyes" ; then
@@ -2882,116 +2882,116 @@ if test "x$openssl" = "xyes" ; then
 		]
 	)
 
-	AC_SEARCH_LIBS([EVP_CIPHER_CTX_ctrl], [crypto],
+	AC_SEARCH_LIBS([sunw_EVP_CIPHER_CTX_ctrl], [sunw_crypto],
 		[AC_DEFINE([HAVE_EVP_CIPHER_CTX_CTRL], [1],
 		    [Define if libcrypto has EVP_CIPHER_CTX_ctrl])])
 
 	# LibreSSL/OpenSSL 1.1x API
-	AC_SEARCH_LIBS([DH_get0_key], [crypto],
+	AC_SEARCH_LIBS([sunw_DH_get0_key], [sunw_crypto],
 		[AC_DEFINE([HAVE_DH_GET0_KEY], [1],
 		    [Define if libcrypto has DH_get0_key])])
-	AC_SEARCH_LIBS([DH_get0_pqg], [crypto],
+	AC_SEARCH_LIBS([sunw_DH_get0_pqg], [sunw_crypto],
 		[AC_DEFINE([HAVE_DH_GET0_PQG], [1],
 		    [Define if libcrypto has DH_get0_pqg])])
-	AC_SEARCH_LIBS([DH_set0_key], [crypto],
+	AC_SEARCH_LIBS([sunw_DH_set0_key], [sunw_crypto],
 		[AC_DEFINE([HAVE_DH_SET0_KEY], [1],
 		    [Define if libcrypto has DH_set0_key])])
-	AC_SEARCH_LIBS([DH_set_length], [crypto],
+	AC_SEARCH_LIBS([sunw_DH_set_length], [sunw_crypto],
 		[AC_DEFINE([HAVE_DH_SET_LENGTH], [1],
 		    [Define if libcrypto has DH_set_length])])
-	AC_SEARCH_LIBS([DH_set0_pqg], [crypto],
+	AC_SEARCH_LIBS([sunw_DH_set0_pqg], [sunw_crypto],
 		[AC_DEFINE([HAVE_DH_SET0_PQG], [1],
 		    [Define if libcrypto has DH_set0_pqg])])
 
-	AC_SEARCH_LIBS([DSA_get0_key], [crypto],
+	AC_SEARCH_LIBS([sunw_DSA_get0_key], [sunw_crypto],
 		[AC_DEFINE([HAVE_DSA_GET0_KEY], [1],
 		    [Define if libcrypto has DSA_get0_key])])
-	AC_SEARCH_LIBS([DSA_get0_pqg], [crypto],
+	AC_SEARCH_LIBS([sunw_DSA_get0_pqg], [sunw_crypto],
 		[AC_DEFINE([HAVE_DSA_GET0_PQG], [1],
 		    [Define if libcrypto has DSA_get0_pqg])])
-	AC_SEARCH_LIBS([DSA_set0_key], [crypto],
+	AC_SEARCH_LIBS([sunw_DSA_set0_key], [sunw_crypto],
 		[AC_DEFINE([HAVE_DSA_SET0_KEY], [1],
 		    [Define if libcrypto has DSA_set0_key])])
-	AC_SEARCH_LIBS([DSA_set0_pqg], [crypto],
+	AC_SEARCH_LIBS([sunw_DSA_set0_pqg], [sunw_crypto],
 		[AC_DEFINE([HAVE_DSA_SET0_PQG], [1],
 		    [Define if libcrypto has DSA_set0_pqg])])
 
-	AC_SEARCH_LIBS([DSA_SIG_get0], [crypto],
+	AC_SEARCH_LIBS([sunw_DSA_SIG_get0], [sunw_crypto],
 		[AC_DEFINE([HAVE_DSA_SIG_GET0], [1],
 		    [Define if libcrypto has DSA_SIG_get0])])
-	AC_SEARCH_LIBS([DSA_SIG_set0], [crypto],
+	AC_SEARCH_LIBS([sunw_DSA_SIG_set0], [sunw_crypto],
 		[AC_DEFINE([HAVE_DSA_SIG_SET0], [1],
 		    [Define if libcrypto has DSA_SIG_set0])])
 
-	AC_SEARCH_LIBS([ECDSA_SIG_get0], [crypto],
+	AC_SEARCH_LIBS([sunw_ECDSA_SIG_get0], [sunw_crypto],
 		[AC_DEFINE([HAVE_ECDSA_SIG_GET0], [1],
 		    [Define if libcrypto has ECDSA_SIG_get0])])
-	AC_SEARCH_LIBS([ECDSA_SIG_set0], [crypto],
+	AC_SEARCH_LIBS([sunw_ECDSA_SIG_set0], [sunw_crypto],
 		[AC_DEFINE([HAVE_ECDSA_SIG_SET0], [1],
 		    [Define if libcrypto has ECDSA_SIG_set0])])
 
-	AC_SEARCH_LIBS([EVP_CIPHER_CTX_iv], [crypto],
+	AC_SEARCH_LIBS([sunw_EVP_CIPHER_CTX_iv], [sunw_crypto],
 		[AC_DEFINE([HAVE_EVP_CIPHER_CTX_IV], [1],
 		    [Define if libcrypto has EVP_CIPHER_CTX_iv])])
-	AC_SEARCH_LIBS([EVP_CIPHER_CTX_iv_noconst], [crypto],
+	AC_SEARCH_LIBS([sunw_EVP_CIPHER_CTX_iv_noconst], [sunw_crypto],
 		[AC_DEFINE([HAVE_EVP_CIPHER_CTX_IV_NOCONST], [1],
 		    [Define if libcrypto has EVP_CIPHER_CTX_iv_noconst])])
-	AC_SEARCH_LIBS([EVP_CIPHER_CTX_get_iv], [crypto],
+	AC_SEARCH_LIBS([sunw_EVP_CIPHER_CTX_get_iv], [sunw_crypto],
 		[AC_DEFINE([HAVE_EVP_CIPHER_CTX_GET_IV], [1],
 		    [Define if libcrypto has EVP_CIPHER_CTX_get_iv])])
-	AC_SEARCH_LIBS([EVP_CIPHER_CTX_set_iv], [crypto],
+	AC_SEARCH_LIBS([sunw_EVP_CIPHER_CTX_set_iv], [sunw_crypto],
 		[AC_DEFINE([HAVE_EVP_CIPHER_CTX_GET_IV], [1],
 		    [Define if libcrypto has EVP_CIPHER_CTX_set_iv])])
 
-	AC_SEARCH_LIBS([RSA_get0_crt_params], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_get0_crt_params], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_GET0_CRT_PARAMS], [1],
 		    [Define if libcrypto has RSA_get0_crt_params])])
-	AC_SEARCH_LIBS([RSA_get0_factors], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_get0_factors], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_GET0_FACTORS], [1],
 		    [Define if libcrypto has RSA_get0_factors])])
-	AC_SEARCH_LIBS([RSA_get0_key], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_get0_key], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_GET0_KEY], [1],
 		    [Define if libcrypto has RSA_get0_key])])
-	AC_SEARCH_LIBS([RSA_set0_crt_params], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_set0_crt_params], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_SET0_CRT_PARAMS], [1],
 		    [Define if libcrypto has RSA_get0_srt_params])])
-	AC_SEARCH_LIBS([RSA_set0_factors], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_set0_factors], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_SET0_FACTORS], [1],
 		    [Define if libcrypto has RSA_set0_factors])])
-	AC_SEARCH_LIBS([RSA_set0_key], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_set0_key], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_SET0_KEY], [1],
 		    [Define if libcrypto has RSA_set0_key])])
 
-	AC_SEARCH_LIBS([RSA_meth_free], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_meth_free], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_METH_FREE], [1],
 		    [Define if libcrypto has RSA_meth_free])])
-	AC_SEARCH_LIBS([RSA_meth_dup], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_meth_dup], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_METH_DUP], [1],
 		    [Define if libcrypto has RSA_meth_dup])])
-	AC_SEARCH_LIBS([RSA_meth_set1_name], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_meth_set1_name], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_METH_SET1_NAME], [1],
 		    [Define if libcrypto has RSA_meth_set1_name])])
-	AC_SEARCH_LIBS([RSA_meth_get_finish], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_meth_get_finish], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_METH_GET_FINISH], [1],
 		    [Define if libcrypto has RSA_meth_get_finish])])
-	AC_SEARCH_LIBS([RSA_meth_set_priv_enc], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_meth_set_priv_enc], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_METH_SET_PRIV_ENC], [1],
 		    [Define if libcrypto has RSA_meth_set_priv_enc])])
-	AC_SEARCH_LIBS([RSA_meth_set_priv_dec], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_meth_set_priv_dec], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_METH_SET_PRIV_DEC], [1],
 		    [Define if libcrypto has RSA_meth_set_priv_dec])])
-	AC_SEARCH_LIBS([RSA_meth_set_finish], [crypto],
+	AC_SEARCH_LIBS([sunw_RSA_meth_set_finish], [sunw_crypto],
 		[AC_DEFINE([HAVE_RSA_METH_SET_FINISH], [1],
 		    [Define if libcrypto has RSA_meth_set_finish])])
 
-	AC_SEARCH_LIBS([EVP_PKEY_get0_RSA], [crypto],
+	AC_SEARCH_LIBS([sunw_EVP_PKEY_get0_RSA], [sunw_crypto],
 		[AC_DEFINE([HAVE_EVP_PKEY_GET0_RSA], [1],
 		    [Define if libcrypto has EVP_PKEY_get0_RSA])])
 
-	AC_SEARCH_LIBS([EVP_MD_CTX_new], [crypto],
+	AC_SEARCH_LIBS([sunw_EVP_MD_CTX_new], [sunw_crypto],
 		[AC_DEFINE([HAVE_EVP_MD_CTX_NEW], [1],
 		    [Define if libcrypto has EVP_MD_CTX_new])])
-	AC_SEARCH_LIBS([EVP_MD_CTX_free], [crypto],
+	AC_SEARCH_LIBS([sunw_EVP_MD_CTX_free], [sunw_crypto],
 		[AC_DEFINE([HAVE_EVP_MD_CTX_FREE], [1],
 		    [Define if libcrypto has EVP_MD_CTX_free])])
 
@@ -3028,7 +3028,7 @@ if test "x$openssl" = "xyes" ; then
 	AC_CHECK_FUNCS([crypt DES_crypt])
 
 	# Search for SHA256 support in libc and/or OpenSSL
-	AC_CHECK_FUNCS([SHA256_Update EVP_sha256], ,
+	AC_CHECK_FUNCS([sunw_SHA256_Update sunw_EVP_sha256], ,
 	    [unsupported_algorithms="$unsupported_algorithms \
 		hmac-sha2-256 \
 		hmac-sha2-512 \
@@ -3038,7 +3038,7 @@ if test "x$openssl" = "xyes" ; then
 	     ]
 	)
 	# Search for RIPE-MD support in OpenSSL
-	AC_CHECK_FUNCS([EVP_ripemd160], ,
+	AC_CHECK_FUNCS([sunw_EVP_ripemd160], ,
 	    [unsupported_algorithms="$unsupported_algorithms \
 		hmac-ripemd160 \
 		hmac-ripemd160@openssh.com \

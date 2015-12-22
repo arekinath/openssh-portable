@@ -71,9 +71,9 @@ void ssh_aes_ctr_iv(EVP_CIPHER_CTX *, int, u_char *, size_t);
 # endif
 #endif
 
-#if defined(HAVE_EVP_RIPEMD160)
+#if defined(HAVE_SUNW_EVP_RIPEMD160)
 # if defined(OPENSSL_NO_RIPEMD) || defined(OPENSSL_NO_RMD160)
-#  undef HAVE_EVP_RIPEMD160
+#  undef HAVE_SUNW_EVP_RIPEMD160
 # endif
 #endif
 
