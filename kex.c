@@ -59,7 +59,7 @@
 #endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
-# if defined(HAVE_EVP_SHA256)
+# if defined(HAVE_SUNW_EVP_SHA256)
 # define evp_ssh_sha256 EVP_sha256
 # else
 extern const EVP_MD *evp_ssh_sha256(void);
@@ -97,9 +97,9 @@ static const struct kexalg kexalgs[] = {
 	{ KEX_DH16_SHA512, KEX_DH_GRP16_SHA512, 0, SSH_DIGEST_SHA512 },
 	{ KEX_DH18_SHA512, KEX_DH_GRP18_SHA512, 0, SSH_DIGEST_SHA512 },
 	{ KEX_DHGEX_SHA1, KEX_DH_GEX_SHA1, 0, SSH_DIGEST_SHA1 },
-#ifdef HAVE_EVP_SHA256
+#ifdef HAVE_SUNW_EVP_SHA256
 	{ KEX_DHGEX_SHA256, KEX_DH_GEX_SHA256, 0, SSH_DIGEST_SHA256 },
-#endif /* HAVE_EVP_SHA256 */
+#endif /* HAVE_SUNW_EVP_SHA256 */
 #ifdef OPENSSL_HAS_ECC
 	{ KEX_ECDH_SHA2_NISTP256, KEX_ECDH_SHA2,
 	    NID_X9_62_prime256v1, SSH_DIGEST_SHA256 },
@@ -111,10 +111,10 @@ static const struct kexalg kexalgs[] = {
 # endif /* OPENSSL_HAS_NISTP521 */
 #endif /* OPENSSL_HAS_ECC */
 #endif /* WITH_OPENSSL */
-#if defined(HAVE_EVP_SHA256) || !defined(WITH_OPENSSL)
+#if defined(HAVE_SUNW_EVP_SHA256) || !defined(WITH_OPENSSL)
 	{ KEX_CURVE25519_SHA256, KEX_C25519_SHA256, 0, SSH_DIGEST_SHA256 },
 	{ KEX_CURVE25519_SHA256_OLD, KEX_C25519_SHA256, 0, SSH_DIGEST_SHA256 },
-#endif /* HAVE_EVP_SHA256 || !WITH_OPENSSL */
+#endif /* HAVE_SUNW_EVP_SHA256 || !WITH_OPENSSL */
 	{ NULL, -1, -1, -1},
 };
 static const struct kexalg kexalg_prefixes[] = {
