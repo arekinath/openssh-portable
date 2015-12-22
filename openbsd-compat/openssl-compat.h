@@ -85,7 +85,7 @@ void ssh_aes_ctr_iv(EVP_CIPHER_CTX *, int, u_char *, size_t);
 #endif
 
 /* Replace missing EVP_CIPHER_CTX_ctrl() with something that returns failure */
-#ifndef HAVE_EVP_CIPHER_CTX_CTRL
+#ifndef HAVE_SUNW_EVP_CIPHER_CTX_CTRL
 # ifdef OPENSSL_HAVE_EVPGCM
 #  error AES-GCM enabled without EVP_CIPHER_CTX_ctrl /* shouldn't happen */
 # else
@@ -94,63 +94,63 @@ void ssh_aes_ctr_iv(EVP_CIPHER_CTX *, int, u_char *, size_t);
 #endif
 
 /* LibreSSL/OpenSSL 1.1x API compat */
-#ifndef HAVE_DSA_GET0_PQG
+#ifndef HAVE_SUNW_DSA_GET0_PQG
 void DSA_get0_pqg(const DSA *d, const BIGNUM **p, const BIGNUM **q,
     const BIGNUM **g);
-#endif /* HAVE_DSA_GET0_PQG */
+#endif /* HAVE_SUNW_DSA_GET0_PQG */
 
-#ifndef HAVE_DSA_SET0_PQG
+#ifndef HAVE_SUNW_DSA_SET0_PQG
 int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g);
-#endif /* HAVE_DSA_SET0_PQG */
+#endif /* HAVE_SUNW_DSA_SET0_PQG */
 
-#ifndef HAVE_DSA_GET0_KEY
+#ifndef HAVE_SUNW_DSA_GET0_KEY
 void DSA_get0_key(const DSA *d, const BIGNUM **pub_key,
     const BIGNUM **priv_key);
-#endif /* HAVE_DSA_GET0_KEY */
+#endif /* HAVE_SUNW_DSA_GET0_KEY */
 
-#ifndef HAVE_DSA_SET0_KEY
+#ifndef HAVE_SUNW_DSA_SET0_KEY
 int DSA_set0_key(DSA *d, BIGNUM *pub_key, BIGNUM *priv_key);
-#endif /* HAVE_DSA_SET0_KEY */
+#endif /* HAVE_SUNW_DSA_SET0_KEY */
 
-#ifndef HAVE_EVP_CIPHER_CTX_GET_IV
-# ifdef HAVE_EVP_CIPHER_CTX_GET_UPDATED_IV
+#ifndef HAVE_SUNW_EVP_CIPHER_CTX_GET_IV
+# ifdef HAVE_SUNW_EVP_CIPHER_CTX_GET_UPDATED_IV
 #  define EVP_CIPHER_CTX_get_iv EVP_CIPHER_CTX_get_updated_iv
-# else /* HAVE_EVP_CIPHER_CTX_GET_UPDATED_IV */
+# else /* HAVE_SUNW_EVP_CIPHER_CTX_GET_UPDATED_IV */
 int EVP_CIPHER_CTX_get_iv(const EVP_CIPHER_CTX *ctx,
     unsigned char *iv, size_t len);
-# endif /* HAVE_EVP_CIPHER_CTX_GET_UPDATED_IV */
-#endif /* HAVE_EVP_CIPHER_CTX_GET_IV */
+# endif /* HAVE_SUNW_EVP_CIPHER_CTX_GET_UPDATED_IV */
+#endif /* HAVE_SUNW_EVP_CIPHER_CTX_GET_IV */
 
-#ifndef HAVE_EVP_CIPHER_CTX_SET_IV
+#ifndef HAVE_SUNW_EVP_CIPHER_CTX_SET_IV
 int EVP_CIPHER_CTX_set_iv(EVP_CIPHER_CTX *ctx,
     const unsigned char *iv, size_t len);
-#endif /* HAVE_EVP_CIPHER_CTX_SET_IV */
+#endif /* HAVE_SUNW_EVP_CIPHER_CTX_SET_IV */
 
-#ifndef HAVE_RSA_GET0_KEY
+#ifndef HAVE_SUNW_RSA_GET0_KEY
 void RSA_get0_key(const RSA *r, const BIGNUM **n, const BIGNUM **e,
     const BIGNUM **d);
-#endif /* HAVE_RSA_GET0_KEY */
+#endif /* HAVE_SUNW_RSA_GET0_KEY */
 
-#ifndef HAVE_RSA_SET0_KEY
+#ifndef HAVE_SUNW_RSA_SET0_KEY
 int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d);
-#endif /* HAVE_RSA_SET0_KEY */
+#endif /* HAVE_SUNW_RSA_SET0_KEY */
 
-#ifndef HAVE_RSA_GET0_CRT_PARAMS
+#ifndef HAVE_SUNW_RSA_GET0_CRT_PARAMS
 void RSA_get0_crt_params(const RSA *r, const BIGNUM **dmp1, const BIGNUM **dmq1,
     const BIGNUM **iqmp);
-#endif /* HAVE_RSA_GET0_CRT_PARAMS */
+#endif /* HAVE_SUNW_RSA_GET0_CRT_PARAMS */
 
-#ifndef HAVE_RSA_SET0_CRT_PARAMS
+#ifndef HAVE_SUNW_RSA_SET0_CRT_PARAMS
 int RSA_set0_crt_params(RSA *r, BIGNUM *dmp1, BIGNUM *dmq1, BIGNUM *iqmp);
-#endif /* HAVE_RSA_SET0_CRT_PARAMS */
+#endif /* HAVE_SUNW_RSA_SET0_CRT_PARAMS */
 
-#ifndef HAVE_RSA_GET0_FACTORS
+#ifndef HAVE_SUNW_RSA_GET0_FACTORS
 void RSA_get0_factors(const RSA *r, const BIGNUM **p, const BIGNUM **q);
-#endif /* HAVE_RSA_GET0_FACTORS */
+#endif /* HAVE_SUNW_RSA_GET0_FACTORS */
 
-#ifndef HAVE_RSA_SET0_FACTORS
+#ifndef HAVE_SUNW_RSA_SET0_FACTORS
 int RSA_set0_factors(RSA *r, BIGNUM *p, BIGNUM *q);
-#endif /* HAVE_RSA_SET0_FACTORS */
+#endif /* HAVE_SUNW_RSA_SET0_FACTORS */
 
 #ifndef DSA_SIG_GET0
 void DSA_SIG_get0(const DSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps);
@@ -161,77 +161,77 @@ int DSA_SIG_set0(DSA_SIG *sig, BIGNUM *r, BIGNUM *s);
 #endif /* DSA_SIG_SET0 */
 
 #ifdef OPENSSL_HAS_ECC
-#ifndef HAVE_ECDSA_SIG_GET0
+#ifndef HAVE_SUNW_ECDSA_SIG_GET0
 void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps);
-#endif /* HAVE_ECDSA_SIG_GET0 */
+#endif /* HAVE_SUNW_ECDSA_SIG_GET0 */
 
-#ifndef HAVE_ECDSA_SIG_SET0
+#ifndef HAVE_SUNW_ECDSA_SIG_SET0
 int ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s);
-#endif /* HAVE_ECDSA_SIG_SET0 */
+#endif /* HAVE_SUNW_ECDSA_SIG_SET0 */
 #endif /* OPENSSL_HAS_ECC */
 
-#ifndef HAVE_DH_GET0_PQG
+#ifndef HAVE_SUNW_DH_GET0_PQG
 void DH_get0_pqg(const DH *dh, const BIGNUM **p, const BIGNUM **q,
     const BIGNUM **g);
-#endif /* HAVE_DH_GET0_PQG */
+#endif /* HAVE_SUNW_DH_GET0_PQG */
 
-#ifndef HAVE_DH_SET0_PQG
+#ifndef HAVE_SUNW_DH_SET0_PQG
 int DH_set0_pqg(DH *dh, BIGNUM *p, BIGNUM *q, BIGNUM *g);
-#endif /* HAVE_DH_SET0_PQG */
+#endif /* HAVE_SUNW_DH_SET0_PQG */
 
-#ifndef HAVE_DH_GET0_KEY
+#ifndef HAVE_SUNW_DH_GET0_KEY
 void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **priv_key);
-#endif /* HAVE_DH_GET0_KEY */
+#endif /* HAVE_SUNW_DH_GET0_KEY */
 
-#ifndef HAVE_DH_SET0_KEY
+#ifndef HAVE_SUNW_DH_SET0_KEY
 int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key);
-#endif /* HAVE_DH_SET0_KEY */
+#endif /* HAVE_SUNW_DH_SET0_KEY */
 
-#ifndef HAVE_DH_SET_LENGTH
+#ifndef HAVE_SUNW_DH_SET_LENGTH
 int DH_set_length(DH *dh, long length);
-#endif /* HAVE_DH_SET_LENGTH */
+#endif /* HAVE_SUNW_DH_SET_LENGTH */
 
-#ifndef HAVE_RSA_METH_FREE
+#ifndef HAVE_SUNW_RSA_METH_FREE
 void RSA_meth_free(RSA_METHOD *meth);
-#endif /* HAVE_RSA_METH_FREE */
+#endif /* HAVE_SUNW_RSA_METH_FREE */
 
-#ifndef HAVE_RSA_METH_DUP
+#ifndef HAVE_SUNW_RSA_METH_DUP
 RSA_METHOD *RSA_meth_dup(const RSA_METHOD *meth);
-#endif /* HAVE_RSA_METH_DUP */
+#endif /* HAVE_SUNW_RSA_METH_DUP */
 
-#ifndef HAVE_RSA_METH_SET1_NAME
+#ifndef HAVE_SUNW_RSA_METH_SET1_NAME
 int RSA_meth_set1_name(RSA_METHOD *meth, const char *name);
-#endif /* HAVE_RSA_METH_SET1_NAME */
+#endif /* HAVE_SUNW_RSA_METH_SET1_NAME */
 
-#ifndef HAVE_RSA_METH_GET_FINISH
+#ifndef HAVE_SUNW_RSA_METH_GET_FINISH
 int (*RSA_meth_get_finish(const RSA_METHOD *meth))(RSA *rsa);
-#endif /* HAVE_RSA_METH_GET_FINISH */
+#endif /* HAVE_SUNW_RSA_METH_GET_FINISH */
 
-#ifndef HAVE_RSA_METH_SET_PRIV_ENC
+#ifndef HAVE_SUNW_RSA_METH_SET_PRIV_ENC
 int RSA_meth_set_priv_enc(RSA_METHOD *meth, int (*priv_enc)(int flen,
     const unsigned char *from, unsigned char *to, RSA *rsa, int padding));
-#endif /* HAVE_RSA_METH_SET_PRIV_ENC */
+#endif /* HAVE_SUNW_RSA_METH_SET_PRIV_ENC */
 
-#ifndef HAVE_RSA_METH_SET_PRIV_DEC
+#ifndef HAVE_SUNW_RSA_METH_SET_PRIV_DEC
 int RSA_meth_set_priv_dec(RSA_METHOD *meth, int (*priv_dec)(int flen,
     const unsigned char *from, unsigned char *to, RSA *rsa, int padding));
-#endif /* HAVE_RSA_METH_SET_PRIV_DEC */
+#endif /* HAVE_SUNW_RSA_METH_SET_PRIV_DEC */
 
-#ifndef HAVE_RSA_METH_SET_FINISH
+#ifndef HAVE_SUNW_RSA_METH_SET_FINISH
 int RSA_meth_set_finish(RSA_METHOD *meth, int (*finish)(RSA *rsa));
-#endif /* HAVE_RSA_METH_SET_FINISH */
+#endif /* HAVE_SUNW_RSA_METH_SET_FINISH */
 
-#ifndef HAVE_EVP_PKEY_GET0_RSA
+#ifndef HAVE_SUNW_EVP_PKEY_GET0_RSA
 RSA *EVP_PKEY_get0_RSA(EVP_PKEY *pkey);
-#endif /* HAVE_EVP_PKEY_GET0_RSA */
+#endif /* HAVE_SUNW_EVP_PKEY_GET0_RSA */
 
-#ifndef HAVE_EVP_MD_CTX_new
+#ifndef HAVE_SUNW_EVP_MD_CTX_new
 EVP_MD_CTX *EVP_MD_CTX_new(void);
-#endif /* HAVE_EVP_MD_CTX_new */
+#endif /* HAVE_SUNW_EVP_MD_CTX_new */
 
-#ifndef HAVE_EVP_MD_CTX_free
+#ifndef HAVE_SUNW_EVP_MD_CTX_free
 void EVP_MD_CTX_free(EVP_MD_CTX *ctx);
-#endif /* HAVE_EVP_MD_CTX_free */
+#endif /* HAVE_SUNW_EVP_MD_CTX_free */
 
 #endif /* WITH_OPENSSL */
 #endif /* _OPENSSL_COMPAT_H */
