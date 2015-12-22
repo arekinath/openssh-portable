@@ -2723,8 +2723,8 @@ AC_ARG_WITH([ssl-engine],
 )
 
 if test "x$openssl" = "xyes" ; then
-	LIBS="-lcrypto $LIBS"
-	AC_TRY_LINK_FUNC([RAND_add], ,
+	LIBS="-lsunw_crypto $LIBS"
+	AC_TRY_LINK_FUNC([sunw_RAND_add], ,
 	    [AC_MSG_ERROR([*** working libcrypto not found, check config.log])])
 	AC_CHECK_HEADER([openssl/opensslv.h], ,
 	    [AC_MSG_ERROR([*** OpenSSL headers missing - please install first or check config.log ***])])
@@ -2896,21 +2896,21 @@ if test "x$openssl" = "xyes" ; then
 	)
 
 	AC_CHECK_FUNCS([ \
-		BN_is_prime_ex \
-		DSA_generate_parameters_ex \
-		EVP_CIPHER_CTX_ctrl \
-		EVP_DigestFinal_ex \
-		EVP_DigestInit_ex \
-		EVP_MD_CTX_cleanup \
-		EVP_MD_CTX_copy_ex \
-		EVP_MD_CTX_init \
-		HMAC_CTX_init \
-		RSA_generate_key_ex \
-		RSA_get_default_method \
+		sunw_BN_is_prime_ex \
+		sunw_DSA_generate_parameters_ex \
+		sunw_EVP_CIPHER_CTX_ctrl \
+		sunw_EVP_DigestFinal_ex \
+		sunw_EVP_DigestInit_ex \
+		sunw_EVP_MD_CTX_cleanup \
+		sunw_EVP_MD_CTX_copy_ex \
+		sunw_EVP_MD_CTX_init \
+		sunw_HMAC_CTX_init \
+		sunw_RSA_generate_key_ex \
+		sunw_RSA_get_default_method \
 	])
 
 	# OpenSSL_add_all_algorithms may be a macro.
-	AC_CHECK_FUNC(OpenSSL_add_all_algorithms,
+	AC_CHECK_FUNC(sunw_OpenSSL_add_all_algorithms,
 	    AC_DEFINE(HAVE_OPENSSL_ADD_ALL_ALGORITHMS, 1, [as a function]),
 	    AC_CHECK_DECL(OpenSSL_add_all_algorithms,
 		AC_DEFINE(HAVE_OPENSSL_ADD_ALL_ALGORITHMS, 1, [as a macro]), ,
@@ -2920,42 +2920,42 @@ if test "x$openssl" = "xyes" ; then
 
 	# LibreSSL/OpenSSL 1.1x API
 	AC_CHECK_FUNCS([ \
-		OPENSSL_init_crypto \
-		DH_get0_key \
-		DH_get0_pqg \
-		DH_set0_key \
-		DH_set_length \
-		DH_set0_pqg \
-		DSA_get0_key \
-		DSA_get0_pqg \
-		DSA_set0_key \
-		DSA_set0_pqg \
-		DSA_SIG_get0 \
-		DSA_SIG_set0 \
-		ECDSA_SIG_get0 \
-		ECDSA_SIG_set0 \
-		EVP_CIPHER_CTX_iv \
-		EVP_CIPHER_CTX_iv_noconst \
-		EVP_CIPHER_CTX_get_iv \
-		EVP_CIPHER_CTX_get_updated_iv \
-		EVP_CIPHER_CTX_set_iv \
-		RSA_get0_crt_params \
-		RSA_get0_factors \
-		RSA_get0_key \
-		RSA_set0_crt_params \
-		RSA_set0_factors \
-		RSA_set0_key \
-		RSA_meth_free \
-		RSA_meth_dup \
-		RSA_meth_set1_name \
-		RSA_meth_get_finish \
-		RSA_meth_set_priv_enc \
-		RSA_meth_set_priv_dec \
-		RSA_meth_set_finish \
-		EVP_PKEY_get0_RSA \
-		EVP_MD_CTX_new \
-		EVP_MD_CTX_free \
-		EVP_chacha20 \
+		sunw_OPENSSL_init_crypto \
+		sunw_DH_get0_key \
+		sunw_DH_get0_pqg \
+		sunw_DH_set0_key \
+		sunw_DH_set_length \
+		sunw_DH_set0_pqg \
+		sunw_DSA_get0_key \
+		sunw_DSA_get0_pqg \
+		sunw_DSA_set0_key \
+		sunw_DSA_set0_pqg \
+		sunw_DSA_SIG_get0 \
+		sunw_DSA_SIG_set0 \
+		sunw_ECDSA_SIG_get0 \
+		sunw_ECDSA_SIG_set0 \
+		sunw_EVP_CIPHER_CTX_iv \
+		sunw_EVP_CIPHER_CTX_iv_noconst \
+		sunw_EVP_CIPHER_CTX_get_iv \
+		sunw_EVP_CIPHER_CTX_get_updated_iv \
+		sunw_EVP_CIPHER_CTX_set_iv \
+		sunw_RSA_get0_crt_params \
+		sunw_RSA_get0_factors \
+		sunw_RSA_get0_key \
+		sunw_RSA_set0_crt_params \
+		sunw_RSA_set0_factors \
+		sunw_RSA_set0_key \
+		sunw_RSA_meth_free \
+		sunw_RSA_meth_dup \
+		sunw_RSA_meth_set1_name \
+		sunw_RSA_meth_get_finish \
+		sunw_RSA_meth_set_priv_enc \
+		sunw_RSA_meth_set_priv_dec \
+		sunw_RSA_meth_set_finish \
+		sunw_EVP_PKEY_get0_RSA \
+		sunw_EVP_MD_CTX_new \
+		sunw_EVP_MD_CTX_free \
+		sunw_EVP_chacha20 \
 	])
 
 	if test "x$openssl_engine" = "xyes" ; then
@@ -3078,7 +3078,7 @@ if test "x$openssl" = "xyes" ; then
 	AC_CHECK_FUNCS([crypt DES_crypt])
 
 	# Check for SHA256, SHA384 and SHA512 support in OpenSSL
-	AC_CHECK_FUNCS([EVP_sha256 EVP_sha384 EVP_sha512])
+	AC_CHECK_FUNCS([sunw_EVP_sha256 sunw_EVP_sha384 sunw_EVP_sha512])
 
 	# Check complete ECC support in OpenSSL
 	AC_MSG_CHECKING([whether OpenSSL has NID_X9_62_prime256v1])
@@ -3161,7 +3161,7 @@ if test "x$openssl" = "xyes" ; then
 	if test x$enable_nistp256 = x1 || test x$enable_nistp384 = x1 || \
 	    test x$enable_nistp521 = x1; then
 		AC_DEFINE(OPENSSL_HAS_ECC, [1], [OpenSSL has ECC])
-		AC_CHECK_FUNCS([EC_KEY_METHOD_new])
+		AC_CHECK_FUNCS([sunw_EC_KEY_METHOD_new])
 		openssl_ecc=yes
 	else
 		openssl_ecc=no

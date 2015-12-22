@@ -32,13 +32,13 @@
 #include "digest.h"
 #include "ssherr.h"
 
-#ifndef HAVE_EVP_SHA256
+#ifndef HAVE_SUNW_EVP_SHA256
 # define EVP_sha256 NULL
 #endif
-#ifndef HAVE_EVP_SHA384
+#ifndef HAVE_SUNW_EVP_SHA384
 # define EVP_sha384 NULL
 #endif
-#ifndef HAVE_EVP_SHA512
+#ifndef HAVE_SUNW_EVP_SHA512
 # define EVP_sha512 NULL
 #endif
 
