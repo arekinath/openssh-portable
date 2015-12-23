@@ -49,6 +49,9 @@ struct Session {
 	char	*auth_display;
 	char	*auth_proto;
 	char	*auth_data;
+#ifdef PER_SESSION_XAUTHFILE
+	char    *auth_file;	/* xauth(1) authority file */
+#endif
 	int	single_connection;
 
 	/* proto 2 */
