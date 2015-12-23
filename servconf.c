@@ -472,7 +472,11 @@ fill_default_server_options(ServerOptions *options)
 
 	/* Turn privilege separation on by default */
 	if (use_privsep == -1)
+#ifdef USE_SOLARIS_PRIVS
+		use_privsep = PRIVSEP_ON;
+#else
 		use_privsep = PRIVSEP_NOSANDBOX;
+#endif
 
 #define CLEAR_ON_NONE(v) \
 	do { \
@@ -1108,7 +1112,11 @@ static const struct multistate multistate_gatewayports[] = {
 	{ NULL, -1 }
 };
 static const struct multistate multistate_privsep[] = {
+#ifdef USE_SOLARIS_PRIVS
+	{ "yes",			PRIVSEP_ON },
+#else
 	{ "yes",			PRIVSEP_NOSANDBOX },
+#endif
 	{ "sandbox",			PRIVSEP_ON },
 	{ "nosandbox",			PRIVSEP_NOSANDBOX },
 	{ "no",				PRIVSEP_OFF },
