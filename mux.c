@@ -1889,6 +1889,8 @@ mux_client_request_session(int fd)
 	}
 	muxclient_request_id++;
 
+	platform_pledge_mux();
+
 	signal(SIGHUP, control_client_sighandler);
 	signal(SIGINT, control_client_sighandler);
 	signal(SIGTERM, control_client_sighandler);
@@ -1995,6 +1997,8 @@ mux_client_request_stdio_fwd(int fd)
 	if (mm_send_fd(fd, STDIN_FILENO) == -1 ||
 	    mm_send_fd(fd, STDOUT_FILENO) == -1)
 		fatal("%s: send fds failed", __func__);
+
+	platform_pledge_mux();
 
 	debug3("%s: stdio forward request sent", __func__);
 

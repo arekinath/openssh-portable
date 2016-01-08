@@ -1402,6 +1402,8 @@ skip:
 	signal(SIGTERM, cleanup_handler);
 	nalloc = 0;
 
+	platform_pledge_agent();
+
 	while (1) {
 		prepare_select(&readsetp, &writesetp, &max_fd, &nalloc, &tvp);
 		result = select(max_fd + 1, readsetp, writesetp, NULL, tvp);
