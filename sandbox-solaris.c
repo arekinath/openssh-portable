@@ -48,15 +48,20 @@ ssh_sandbox_init(struct monitor *monitor)
 	struct ssh_sandbox *box = NULL;
 
 	box = xcalloc(1, sizeof(*box));
-	box->pset = priv_allocset();
 
+	/* Start with "basic" and drop everything we don't need. */
+#if defined(HAVE_PRIV_BASICSET)
+	box->pset = priv_allocset();
+#else
+	box->pset = priv_str_to_set("basic", ",", NULL);
+#endif
 	if (box->pset == NULL) {
 		free(box);
 		return NULL;
 	}
-
-	/* Start with "basic" and drop everything we don't need. */
+#if defined(HAVE_PRIV_BASICSET)
 	priv_basicset(box->pset);
+#endif
 
 	/* Drop everything except the ability to use already-opened files */
 	if (priv_delset(box->pset, PRIV_FILE_LINK_ANY) != 0 ||

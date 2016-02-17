@@ -254,11 +254,17 @@ solaris_drop_privs_pinfo_net_fork_exec(void)
 	 * etc etc).
 	 */
 
-	if ((pset = priv_allocset()) == NULL ||
-	    (npset = priv_allocset()) == NULL)
+	if ((pset = priv_allocset()) == NULL)
 		fatal("priv_allocset: %s", strerror(errno));
 
+#if defined(HAVE_PRIV_BASICSET)
+	if ((npset = priv_allocset()) == NULL)
+		fatal("priv_allocset: %s", strerror(errno));
 	priv_basicset(npset);
+#else
+	if ((npset = priv_str_to_set("basic", ",", NULL)) == NULL)
+		fatal("priv_str_to_set: %s", strerror(errno));
+#endif
 
 	if (priv_addset(npset, PRIV_FILE_CHOWN) != 0 ||
 	    priv_addset(npset, PRIV_FILE_DAC_READ) != 0 ||
@@ -294,11 +300,15 @@ solaris_drop_privs_root_pinfo_net(void)
 {
 	priv_set_t *pset = NULL;
 
+	/* Start with "basic" and drop everything we don't need. */
+#if defined(HAVE_PRIV_BASICSET)
 	if ((pset = priv_allocset()) == NULL)
 		fatal("priv_allocset: %s", strerror(errno));
-
-	/* Start with "basic" and drop everything we don't need. */
 	priv_basicset(pset);
+#else
+	if ((pset = priv_str_to_set("basic", ",", NULL)) == NULL)
+		fatal("priv_str_to_set: %s", strerror(errno));
+#endif
 
 	if (priv_delset(pset, PRIV_FILE_LINK_ANY) != 0 ||
 	    priv_delset(pset, PRIV_NET_ACCESS) != 0 ||
@@ -319,11 +329,15 @@ solaris_drop_privs_root_pinfo_net_exec(void)
 {
 	priv_set_t *pset = NULL;
 
+	/* Start with "basic" and drop everything we don't need. */
+#if defined(HAVE_PRIV_BASICSET)
 	if ((pset = priv_allocset()) == NULL)
 		fatal("priv_allocset: %s", strerror(errno));
-
-	/* Start with "basic" and drop everything we don't need. */
 	priv_basicset(pset);
+#else
+	if ((pset = priv_str_to_set("basic", ",", NULL)) == NULL)
+		fatal("priv_str_to_set: %s", strerror(errno));
+#endif
 
 	if (priv_delset(pset, PRIV_FILE_LINK_ANY) != 0 ||
 	    priv_delset(pset, PRIV_NET_ACCESS) != 0 ||

@@ -898,6 +898,7 @@ mips-sony-bsd|mips-sony-newsos4)
 	fi
 	AC_CHECK_FUNC([setppriv],
 		[ AC_CHECK_HEADERS([priv.h], [
+			AC_CHECK_FUNCS([priv_basicset])
 			SOLARIS_PRIVS="yes"
 		])
 	])
