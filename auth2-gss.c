@@ -1,7 +1,7 @@
 /* $OpenBSD: auth2-gss.c,v 1.29 2018/07/31 03:10:27 djm Exp $ */
 
 /*
- * Copyright (c) 2001-2003 Simon Wilkinson. All rights reserved.
+ * Copyright (c) 2001-2007 Simon Wilkinson. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,6 +53,40 @@ static int input_gssapi_token(int type, u_int32_t plen, struct ssh *ssh);
 static int input_gssapi_mic(int type, u_int32_t plen, struct ssh *ssh);
 static int input_gssapi_exchange_complete(int type, u_int32_t plen, struct ssh *ssh);
 static int input_gssapi_errtok(int, u_int32_t, struct ssh *);
+
+/* 
+ * The 'gssapi_keyex' userauth mechanism.
+ */
+static int
+userauth_gsskeyex(Authctxt *authctxt)
+{
+	int authenticated = 0;
+	struct sshbuf *b = sshbuf_new();
+	gss_buffer_desc mic, gssbuf;
+	u_int len;
+
+	mic.value = packet_get_string(&len);
+	mic.length = len;
+
+	packet_check_eom();
+
+	ssh_gssapi_buildmic(b, authctxt->user, authctxt->service,
+	    "gssapi-keyex");
+
+	gssbuf.value = sshbuf_mutable_ptr(b);
+	gssbuf.length = sshbuf_len(b);
+
+	/* gss_kex_context is NULL with privsep, so we can't check it here */
+	if (!GSS_ERROR(PRIVSEP(ssh_gssapi_checkmic(gss_kex_context, 
+	    &gssbuf, &mic))))
+		authenticated = PRIVSEP(ssh_gssapi_userok(authctxt->user,
+		    authctxt->pw));
+	
+	sshbuf_free(b);
+	free(mic.value);
+
+	return (authenticated);
+}
 
 /*
  * We only support those mechanisms that we know about (ie ones that we know
@@ -260,7 +294,8 @@ input_gssapi_exchange_complete(int type, u_int32_t plen, struct ssh *ssh)
 	if ((r = sshpkt_get_end(ssh)) != 0)
 		fatal("%s: %s", __func__, ssh_err(r));
 
-	authenticated = PRIVSEP(ssh_gssapi_userok(authctxt->user));
+	authenticated = PRIVSEP(ssh_gssapi_userok(authctxt->user,
+	    authctxt->pw));
 
 	if ((!use_privsep || mm_is_monitor()) &&
 	    (displayname = ssh_gssapi_displayname()) != NULL)
@@ -306,7 +341,8 @@ input_gssapi_mic(int type, u_int32_t plen, struct ssh *ssh)
 	gssbuf.length = sshbuf_len(b);
 
 	if (!GSS_ERROR(PRIVSEP(ssh_gssapi_checkmic(gssctxt, &gssbuf, &mic))))
-		authenticated = PRIVSEP(ssh_gssapi_userok(authctxt->user));
+		authenticated = 
+		    PRIVSEP(ssh_gssapi_userok(authctxt->user, authctxt->pw));
 	else
 		logit("GSSAPI MIC check failed");
 
@@ -325,6 +361,12 @@ input_gssapi_mic(int type, u_int32_t plen, struct ssh *ssh)
 	userauth_finish(ssh, authenticated, "gssapi-with-mic", NULL);
 	return 0;
 }
+
+Authmethod method_gsskeyex = {
+	"gssapi-keyex",
+	userauth_gsskeyex,
+	&options.gss_authentication
+};
 
 Authmethod method_gssapi = {
 	"gssapi-with-mic",

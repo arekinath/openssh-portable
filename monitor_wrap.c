@@ -395,16 +395,16 @@ mm_inform_authserv(char *service, char *style)
 void
 mm_inform_authmethod(char *authmethod)
 {
-	Buffer m;
+	struct sshbuf *m;
 
 	debug3("%s entering", __func__);
 
-	buffer_init(&m);
-	buffer_put_cstring(&m, authmethod);
+	m = sshbuf_new();
+	sshbuf_put_cstring(m, authmethod);
 
-	mm_request_send(pmonitor->m_recvfd, MONITOR_REQ_AUTHMETHOD, &m);
+	mm_request_send(pmonitor->m_recvfd, MONITOR_REQ_AUTHMETHOD, m);
 
-	buffer_free(&m);
+	sshbuf_free(m);
 }
 #endif
 
@@ -1002,7 +1002,7 @@ mm_ssh_gssapi_checkmic(Gssctxt *ctx, gss_buffer_t gssbuf, gss_buffer_t gssmic)
 }
 
 int
-mm_ssh_gssapi_userok(char *user)
+mm_ssh_gssapi_userok(char *user, struct passwd *pw)
 {
 	struct sshbuf *m;
 	int r, authenticated = 0;
@@ -1021,4 +1021,51 @@ mm_ssh_gssapi_userok(char *user)
 	debug3("%s: user %sauthenticated",__func__, authenticated ? "" : "not ");
 	return (authenticated);
 }
+
+OM_uint32
+mm_ssh_gssapi_sign(Gssctxt *ctx, gss_buffer_desc *data, gss_buffer_desc *hash)
+{
+	struct sshbuf *m;
+	OM_uint32 major;
+	int rc;
+	u_int len;
+
+	m = sshbuf_new();
+	sshbuf_put_string(m, data->value, data->length);
+
+	mm_request_send(pmonitor->m_recvfd, MONITOR_REQ_GSSSIGN, m);
+	mm_request_receive_expect(pmonitor->m_recvfd, MONITOR_ANS_GSSSIGN, m);
+
+	if ((rc = sshbuf_get_u32(m, &major)) ||
+	    (rc = sshbuf_get_string(m, &hash->value, &hash->length)))
+		fatal("%s: sshbuf_get returned %d", __func__, rc);
+
+	sshbuf_free(m);
+
+	return (major);
+}
+
+int
+mm_ssh_gssapi_update_creds(ssh_gssapi_ccache *store)
+{
+	struct sshbuf *m;
+	int ok, rc;
+
+	m = sshbuf_new();
+
+	sshbuf_put_cstring(m, store->filename ? store->filename : "");
+	sshbuf_put_cstring(m, store->envvar ? store->envvar : "");
+	sshbuf_put_cstring(m, store->envval ? store->envval : "");
+	
+	mm_request_send(pmonitor->m_recvfd, MONITOR_REQ_GSSUPCREDS, m);
+	mm_request_receive_expect(pmonitor->m_recvfd, MONITOR_ANS_GSSUPCREDS, m);
+
+	if ((rc = sshbuf_get_u32(m, (uint32_t *)&ok)))
+		fatal("%s: sshbuf_get_u32 returned %d", __func__, rc);
+
+	sshbuf_free(m);
+	
+	return (ok);
+}
+
 #endif /* GSSAPI */

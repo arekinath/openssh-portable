@@ -161,6 +161,8 @@ typedef enum {
 	oClearAllForwardings, oNoHostAuthenticationForLocalhost,
 	oEnableSSHKeysign, oRekeyLimit, oVerifyHostKeyDNS, oConnectTimeout,
 	oAddressFamily, oGssAuthentication, oGssDelegateCreds,
+	oGssTrustDns, oGssKeyEx, oGssClientIdentity, oGssRenewalRekey,
+	oGssServerIdentity, 
 	oServerAliveInterval, oServerAliveCountMax, oIdentitiesOnly,
 	oSendEnv, oSetEnv, oControlPath, oControlMaster, oControlPersist,
 	oHashKnownHosts,
@@ -202,13 +204,6 @@ static struct {
 	{ "kerberostgtpassing", oUnsupported },
 
 	/* Sometimes-unsupported options */
-#if defined(GSSAPI)
-	{ "gssapiauthentication", oGssAuthentication },
-	{ "gssapidelegatecredentials", oGssDelegateCreds },
-# else
-	{ "gssapiauthentication", oUnsupported },
-	{ "gssapidelegatecredentials", oUnsupported },
-#endif
 #ifdef ENABLE_PKCS11
 	{ "smartcarddevice", oPKCS11Provider },
 	{ "pkcs11provider", oPKCS11Provider },
@@ -236,6 +231,22 @@ static struct {
 	{ "challengeresponseauthentication", oChallengeResponseAuthentication },
 	{ "skeyauthentication", oUnsupported },
 	{ "tisauthentication", oChallengeResponseAuthentication },  /* alias */
+#if defined(GSSAPI)
+	{ "gssapiauthentication", oGssAuthentication },
+	{ "gssapikeyexchange", oGssKeyEx },
+	{ "gssapidelegatecredentials", oGssDelegateCreds },
+	{ "gssapitrustdns", oGssTrustDns },
+	{ "gssapiclientidentity", oGssClientIdentity },
+	{ "gssapiserveridentity", oGssServerIdentity },
+	{ "gssapirenewalforcesrekey", oGssRenewalRekey },
+#else
+	{ "gssapiauthentication", oUnsupported },
+	{ "gssapikeyexchange", oUnsupported },
+	{ "gssapidelegatecredentials", oUnsupported },
+	{ "gssapitrustdns", oUnsupported },
+	{ "gssapiclientidentity", oUnsupported },
+	{ "gssapirenewalforcesrekey", oUnsupported },
+#endif
 	{ "identityfile", oIdentityFile },
 	{ "identityfile2", oIdentityFile },			/* obsolete */
 	{ "identitiesonly", oIdentitiesOnly },
@@ -1009,8 +1020,28 @@ parse_time:
 		intptr = &options->gss_authentication;
 		goto parse_flag;
 
+	case oGssKeyEx:
+		intptr = &options->gss_keyex;
+		goto parse_flag;
+
 	case oGssDelegateCreds:
 		intptr = &options->gss_deleg_creds;
+		goto parse_flag;
+
+	case oGssTrustDns:
+		intptr = &options->gss_trust_dns;
+		goto parse_flag;
+
+	case oGssClientIdentity:
+		charptr = &options->gss_client_identity;
+		goto parse_string;
+
+	case oGssServerIdentity:
+		charptr = &options->gss_server_identity;
+		goto parse_string;
+
+	case oGssRenewalRekey:
+		intptr = &options->gss_renewal_rekey;
 		goto parse_flag;
 
 	case oBatchMode:
@@ -1884,7 +1915,12 @@ initialize_options(Options * options)
 	options->pubkey_authentication = -1;
 	options->challenge_response_authentication = -1;
 	options->gss_authentication = -1;
+	options->gss_keyex = -1;
 	options->gss_deleg_creds = -1;
+	options->gss_trust_dns = -1;
+	options->gss_renewal_rekey = -1;
+	options->gss_client_identity = NULL;
+	options->gss_server_identity = NULL;
 	options->password_authentication = -1;
 	options->kbd_interactive_authentication = -1;
 	options->kbd_interactive_devices = NULL;
@@ -2041,8 +2077,14 @@ fill_default_options(Options * options)
 #else
 		options->gss_authentication = 0;
 #endif
+	if (options->gss_keyex == -1)
+		options->gss_keyex = 0;
 	if (options->gss_deleg_creds == -1)
 		options->gss_deleg_creds = 0;
+	if (options->gss_trust_dns == -1)
+		options->gss_trust_dns = 0;
+	if (options->gss_renewal_rekey == -1)
+		options->gss_renewal_rekey = 0;
 	if (options->password_authentication == -1)
 		options->password_authentication = 1;
 	if (options->kbd_interactive_authentication == -1)

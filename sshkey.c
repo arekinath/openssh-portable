@@ -135,6 +135,9 @@ static const struct keytype keytypes[] = {
 #  endif /* OPENSSL_HAS_NISTP521 */
 # endif /* OPENSSL_HAS_ECC */
 #endif /* WITH_OPENSSL */
+#ifdef GSSAPI
+	{ "null", "null", NULL, KEY_NULL, 0, 0, 0 },
+#endif
 	{ NULL, NULL, NULL, -1, -1, 0, 0 }
 };
 
@@ -223,9 +226,7 @@ sshkey_alg_list(int certs_only, int plain_only, int include_sigonly, char sep)
 	const struct keytype *kt;
 
 	for (kt = keytypes; kt->type != -1; kt++) {
-		if (kt->name == NULL)
-			continue;
-		if (!include_sigonly && kt->sigonly)
+		if (kt->name == NULL || kt->sigonly || kt->type == KEY_NULL)
 			continue;
 		if ((certs_only && !kt->cert) || (plain_only && kt->cert))
 			continue;
