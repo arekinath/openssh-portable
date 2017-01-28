@@ -64,6 +64,9 @@ enum sshkey_types {
 	KEY_ED25519_CERT,
 	KEY_XMSS,
 	KEY_XMSS_CERT,
+#ifdef GSSAPI
+	KEY_NULL,
+#endif
 	KEY_UNSPEC
 };
 

@@ -395,16 +395,21 @@ mm_inform_authserv(char *service, char *style)
 void
 mm_inform_authmethod(char *authmethod)
 {
-	Buffer m;
+	struct sshbuf *m;
+	int rc;
 
 	debug3("%s entering", __func__);
 
-	buffer_init(&m);
-	buffer_put_cstring(&m, authmethod);
+	m = sshbuf_new();
+	if (m == NULL)
+		fatal("%s: failed to allocate buffer", __func__);
 
-	mm_request_send(pmonitor->m_recvfd, MONITOR_REQ_AUTHMETHOD, &m);
+	if ((rc = sshbuf_put_cstring(m, authmethod)))
+		fatal("%s: buffer error: %d", __func__, rc);
 
-	buffer_free(&m);
+	mm_request_send(pmonitor->m_recvfd, MONITOR_REQ_AUTHMETHOD, m);
+
+	sshbuf_free(m);
 }
 #endif
 
@@ -1002,7 +1007,7 @@ mm_ssh_gssapi_checkmic(Gssctxt *ctx, gss_buffer_t gssbuf, gss_buffer_t gssmic)
 }
 
 int
-mm_ssh_gssapi_userok(char *user)
+mm_ssh_gssapi_userok(char *user, struct passwd *pw)
 {
 	struct sshbuf *m;
 	int r, authenticated = 0;
@@ -1021,4 +1026,59 @@ mm_ssh_gssapi_userok(char *user)
 	debug3("%s: user %sauthenticated",__func__, authenticated ? "" : "not ");
 	return (authenticated);
 }
+
+OM_uint32
+mm_ssh_gssapi_sign(Gssctxt *ctx, gss_buffer_desc *data, gss_buffer_desc *hash)
+{
+	struct sshbuf *m;
+	OM_uint32 major;
+	int rc;
+
+	m = sshbuf_new();
+	if (m == NULL)
+		fatal("%s: failed to allocate buffer", __func__);
+	if ((rc = sshbuf_put_string(m, data->value, data->length)))
+		fatal("%s: buffer error: %d", __func__, rc);
+
+	mm_request_send(pmonitor->m_recvfd, MONITOR_REQ_GSSSIGN, m);
+	mm_request_receive_expect(pmonitor->m_recvfd, MONITOR_ANS_GSSSIGN, m);
+
+	if ((rc = sshbuf_get_u32(m, &major)) ||
+	    (rc = sshbuf_get_string(m, (u_char **)&hash->value, &hash->length)))
+		fatal("%s: sshbuf_get returned %d", __func__, rc);
+
+	sshbuf_free(m);
+
+	return (major);
+}
+
+int
+mm_ssh_gssapi_update_creds(ssh_gssapi_ccache *store)
+{
+	struct sshbuf *m;
+	int rc;
+	uint32_t ok;
+
+	m = sshbuf_new();
+	if (m == NULL)
+		fatal("%s: failed to allocate buffer", __func__);
+
+	if ((rc = sshbuf_put_cstring(m, store->filename ? store->filename : "")) ||
+	    (rc = sshbuf_put_cstring(m, store->envvar ? store->envvar : "")) ||
+	    (rc = sshbuf_put_cstring(m, store->envval ? store->envval : "")))
+		fatal("%s: buffer error: %d", __func__, rc);
+	
+	mm_request_send(pmonitor->m_recvfd, MONITOR_REQ_GSSUPCREDS, m);
+	mm_request_receive_expect(pmonitor->m_recvfd, MONITOR_ANS_GSSUPCREDS, m);
+
+	if ((rc = sshbuf_get_u32(m, &ok)))
+		fatal("%s: sshbuf_get_u32 returned %d", __func__, rc);
+	if (ok > INT_MAX)
+		fatal("%s: monitor returned bogus ok value: %u", __func__, ok);
+
+	sshbuf_free(m);
+	
+	return ((int)ok);
+}
+
 #endif /* GSSAPI */

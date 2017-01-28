@@ -15,6 +15,9 @@
 #ifndef _CANOHOST_H
 #define _CANOHOST_H
 
+struct ssh;
+
+char		*remote_hostname(struct ssh *);
 char		*get_peer_ipaddr(int);
 int		 get_peer_port(int);
 char		*get_local_ipaddr(int);
