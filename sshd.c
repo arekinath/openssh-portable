@@ -123,6 +123,10 @@
 #include "version.h"
 #include "ssherr.h"
 
+#ifdef USE_SECURITY_SESSION_API
+#include <Security/AuthSession.h>
+#endif
+
 /* Re-exec fds */
 #define REEXEC_DEVCRYPTO_RESERVED_FD	(STDERR_FILENO + 1)
 #define REEXEC_STARTUP_PIPE_FD		(STDERR_FILENO + 2)
@@ -531,7 +535,7 @@ privsep_preauth_child(void)
 
 #ifdef GSSAPI
 	/* Cache supported mechanism OIDs for later use */
-	if (options.gss_authentication)
+	if (options.gss_authentication || options.gss_keyex)
 		ssh_gssapi_prepare_supported_oids();
 #endif
 
@@ -1705,10 +1709,13 @@ main(int ac, char **av)
 		    key ? "private" : "agent", i, sshkey_ssh_name(pubkey), fp);
 		free(fp);
 	}
+#ifndef GSSAPI
+	/* The GSSAPI key exchange can run without a host key */
 	if (!sensitive_data.have_ssh2_key) {
 		logit("sshd: no hostkeys available -- exiting.");
 		exit(1);
 	}
+#endif
 
 	/*
 	 * Load certificates. They are stored in an array at identical
@@ -1978,6 +1985,60 @@ main(int ac, char **av)
 	    remote_ip, remote_port, laddr,  ssh_local_port(ssh));
 	free(laddr);
 
+#ifdef USE_SECURITY_SESSION_API
+	/*
+	 * Create a new security session for use by the new user login if
+	 * the current session is the root session or we are not launched
+	 * by inetd (eg: debugging mode or server mode).  We do not
+	 * necessarily need to create a session if we are launched from
+	 * inetd because Panther xinetd will create a session for us.
+	 *
+	 * The only case where this logic will fail is if there is an
+	 * inetd running in a non-root session which is not creating
+	 * new sessions for us.  Then all the users will end up in the
+	 * same session (bad).
+	 *
+	 * When the client exits, the session will be destroyed for us
+	 * automatically.
+	 *
+	 * We must create the session before any credentials are stored
+	 * (including AFS pags, which happens a few lines below).
+	 */
+	{
+		OSStatus err = 0;
+		SecuritySessionId sid = 0;
+		SessionAttributeBits sattrs = 0;
+
+		err = SessionGetInfo(callerSecuritySession, &sid, &sattrs);
+		if (err)
+			error("SessionGetInfo() failed with error %.8X",
+			    (unsigned) err);
+		else
+			debug("Current Session ID is %.8X / Session Attributes are %.8X",
+			    (unsigned) sid, (unsigned) sattrs);
+
+		if (inetd_flag && !(sattrs & sessionIsRoot))
+			debug("Running in inetd mode in a non-root session... "
+			    "assuming inetd created the session for us.");
+		else {
+			debug("Creating new security session...");
+			err = SessionCreate(0, sessionHasTTY | sessionIsRemote);
+			if (err)
+				error("SessionCreate() failed with error %.8X",
+				    (unsigned) err);
+
+			err = SessionGetInfo(callerSecuritySession, &sid, 
+			    &sattrs);
+			if (err)
+				error("SessionGetInfo() failed with error %.8X",
+				    (unsigned) err);
+			else
+				debug("New Session ID is %.8X / Session Attributes are %.8X",
+				    (unsigned) sid, (unsigned) sattrs);
+		}
+	}
+#endif
+
 	/*
 	 * We don't want to listen forever unless the other side
 	 * successfully authenticates itself.  So we set up an alarm which is
@@ -2179,6 +2240,48 @@ do_ssh2_kex(void)
 	myproposal[PROPOSAL_SERVER_HOST_KEY_ALGS] = compat_pkalg_proposal(
 	    list_hostkey_types());
 
+#ifdef GSSAPI
+	{
+	char *orig;
+	char *gss = NULL;
+	char *newstr = NULL;
+	orig = myproposal[PROPOSAL_KEX_ALGS];
+
+	/* 
+	 * If we don't have a host key, then there's no point advertising
+	 * the other key exchange algorithms
+	 */
+
+	if (strlen(myproposal[PROPOSAL_SERVER_HOST_KEY_ALGS]) == 0)
+		orig = NULL;
+
+	if (options.gss_keyex)
+		gss = ssh_gssapi_server_mechanisms();
+	else
+		gss = NULL;
+
+	if (gss && orig)
+		xasprintf(&newstr, "%s,%s", gss, orig);
+	else if (gss)
+		newstr = gss;
+	else if (orig)
+		newstr = orig;
+
+	/* 
+	 * If we've got GSSAPI mechanisms, then we've got the 'null' host
+	 * key alg, but we can't tell people about it unless its the only
+  	 * host key algorithm we support
+	 */
+	if (gss && (strlen(myproposal[PROPOSAL_SERVER_HOST_KEY_ALGS])) == 0)
+		myproposal[PROPOSAL_SERVER_HOST_KEY_ALGS] = "null";
+
+	if (newstr)
+		myproposal[PROPOSAL_KEX_ALGS] = newstr;
+	else
+		fatal("No supported key exchange algorithms");
+	}
+#endif
+
 	/* start key exchange */
 	if ((r = kex_setup(active_state, myproposal)) != 0)
 		fatal("kex_setup: %s", ssh_err(r));
@@ -2196,6 +2299,13 @@ do_ssh2_kex(void)
 # endif
 #endif
 	kex->kex[KEX_C25519_SHA256] = kexc25519_server;
+#ifdef GSSAPI
+	if (options.gss_keyex) {
+		kex->kex[KEX_GSS_GRP1_SHA1] = kexgss_server;
+		kex->kex[KEX_GSS_GRP14_SHA1] = kexgss_server;
+		kex->kex[KEX_GSS_GEX_SHA1] = kexgss_server;
+	}
+#endif
 	kex->server = 1;
 	kex->client_version_string=client_version_string;
 	kex->server_version_string=server_version_string;

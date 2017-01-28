@@ -160,6 +160,8 @@ int mm_answer_gss_setup_ctx(int, Buffer *);
 int mm_answer_gss_accept_ctx(int, Buffer *);
 int mm_answer_gss_userok(int, Buffer *);
 int mm_answer_gss_checkmic(int, Buffer *);
+int mm_answer_gss_sign(int, Buffer *);
+int mm_answer_gss_updatecreds(int, Buffer *);
 #endif
 
 #ifdef SSH_AUDIT_EVENTS
@@ -240,11 +242,18 @@ struct mon_table mon_dispatch_proto20[] = {
     {MONITOR_REQ_GSSSTEP, 0, mm_answer_gss_accept_ctx},
     {MONITOR_REQ_GSSUSEROK, MON_ONCE|MON_AUTHDECIDE, mm_answer_gss_userok},
     {MONITOR_REQ_GSSCHECKMIC, MON_ONCE, mm_answer_gss_checkmic},
+    {MONITOR_REQ_GSSSIGN, MON_ONCE, mm_answer_gss_sign},
 #endif
     {0, 0, NULL}
 };
 
 struct mon_table mon_dispatch_postauth20[] = {
+#ifdef GSSAPI
+    {MONITOR_REQ_GSSSETUP, 0, mm_answer_gss_setup_ctx},
+    {MONITOR_REQ_GSSSTEP, 0, mm_answer_gss_accept_ctx},
+    {MONITOR_REQ_GSSSIGN, 0, mm_answer_gss_sign},
+    {MONITOR_REQ_GSSUPCREDS, 0, mm_answer_gss_updatecreds},
+#endif
 #ifdef WITH_OPENSSL
     {MONITOR_REQ_MODULI, 0, mm_answer_moduli},
 #endif
@@ -311,6 +320,10 @@ monitor_child_preauth(Authctxt *_authctxt, struct monitor *pmonitor)
 	/* Permit requests for moduli and signatures */
 	monitor_permit(mon_dispatch, MONITOR_REQ_MODULI, 1);
 	monitor_permit(mon_dispatch, MONITOR_REQ_SIGN, 1);
+#ifdef GSSAPI
+	/* and for the GSSAPI key exchange */
+	monitor_permit(mon_dispatch, MONITOR_REQ_GSSSETUP, 1);
+#endif
 
 	/* The first few requests do not require asynchronous access */
 	while (!authenticated) {
@@ -442,6 +455,10 @@ monitor_child_postauth(struct monitor *pmonitor)
 	monitor_permit(mon_dispatch, MONITOR_REQ_MODULI, 1);
 	monitor_permit(mon_dispatch, MONITOR_REQ_SIGN, 1);
 	monitor_permit(mon_dispatch, MONITOR_REQ_TERM, 1);
+#ifdef GSSAPI
+	/* and for the GSSAPI key exchange */
+	monitor_permit(mon_dispatch, MONITOR_REQ_GSSSETUP, 1);
+#endif		
 
 	if (!no_pty_flag) {
 		monitor_permit(mon_dispatch, MONITOR_REQ_PTY, 1);
@@ -1666,6 +1683,13 @@ monitor_apply_keystate(struct monitor *pmonitor)
 # endif
 #endif /* WITH_OPENSSL */
 		kex->kex[KEX_C25519_SHA256] = kexc25519_server;
+#ifdef GSSAPI
+		if (options.gss_keyex) {
+			kex->kex[KEX_GSS_GRP1_SHA1] = kexgss_server;
+			kex->kex[KEX_GSS_GRP14_SHA1] = kexgss_server;
+			kex->kex[KEX_GSS_GEX_SHA1] = kexgss_server;
+		}
+#endif
 		kex->load_host_public_key=&get_hostkey_public_by_type;
 		kex->load_host_private_key=&get_hostkey_private_by_type;
 		kex->host_key_index=&get_hostkey_index;
@@ -1745,8 +1769,8 @@ mm_answer_gss_setup_ctx(int sock, Buffer *m)
 	OM_uint32 major;
 	u_int len;
 
-	if (!options.gss_authentication)
-		fatal("%s: GSSAPI authentication not enabled", __func__);
+	if (!options.gss_authentication && !options.gss_keyex)
+		fatal("%s: GSSAPI not enabled", __func__);
 
 	goid.elements = buffer_get_string(m, &len);
 	goid.length = len;
@@ -1775,8 +1799,8 @@ mm_answer_gss_accept_ctx(int sock, Buffer *m)
 	OM_uint32 flags = 0; /* GSI needs this */
 	u_int len;
 
-	if (!options.gss_authentication)
-		fatal("%s: GSSAPI authentication not enabled", __func__);
+	if (!options.gss_authentication && !options.gss_keyex)
+		fatal("%s: GSSAPI not enabled", __func__);
 
 	in.value = buffer_get_string(m, &len);
 	in.length = len;
@@ -1795,6 +1819,7 @@ mm_answer_gss_accept_ctx(int sock, Buffer *m)
 		monitor_permit(mon_dispatch, MONITOR_REQ_GSSSTEP, 0);
 		monitor_permit(mon_dispatch, MONITOR_REQ_GSSUSEROK, 1);
 		monitor_permit(mon_dispatch, MONITOR_REQ_GSSCHECKMIC, 1);
+		monitor_permit(mon_dispatch, MONITOR_REQ_GSSSIGN, 1);
 	}
 	return (0);
 }
@@ -1806,8 +1831,8 @@ mm_answer_gss_checkmic(int sock, Buffer *m)
 	OM_uint32 ret;
 	u_int len;
 
-	if (!options.gss_authentication)
-		fatal("%s: GSSAPI authentication not enabled", __func__);
+	if (!options.gss_authentication && !options.gss_keyex)
+		fatal("%s: GSSAPI not enabled", __func__);
 
 	gssbuf.value = buffer_get_string(m, &len);
 	gssbuf.length = len;
@@ -1835,10 +1860,11 @@ mm_answer_gss_userok(int sock, Buffer *m)
 {
 	int authenticated;
 
-	if (!options.gss_authentication)
-		fatal("%s: GSSAPI authentication not enabled", __func__);
+	if (!options.gss_authentication && !options.gss_keyex)
+		fatal("%s: GSSAPI not enabled", __func__);
 
-	authenticated = authctxt->valid && ssh_gssapi_userok(authctxt->user);
+	authenticated = authctxt->valid && 
+	    ssh_gssapi_userok(authctxt->user, authctxt->pw);
 
 	buffer_clear(m);
 	buffer_put_int(m, authenticated);
@@ -1851,5 +1877,76 @@ mm_answer_gss_userok(int sock, Buffer *m)
 	/* Monitor loop will terminate if authenticated */
 	return (authenticated);
 }
+
+int 
+mm_answer_gss_sign(int socket, Buffer *m)
+{
+	gss_buffer_desc data;
+	gss_buffer_desc hash = GSS_C_EMPTY_BUFFER;
+	OM_uint32 major, minor;
+	u_int len;
+
+	if (!options.gss_authentication && !options.gss_keyex)
+		fatal("%s: GSSAPI not enabled", __func__);
+
+	data.value = buffer_get_string(m, &len);
+	data.length = len;
+	if (data.length != 20) 
+		fatal("%s: data length incorrect: %d", __func__, 
+		    (int) data.length);
+
+	/* Save the session ID on the first time around */
+	if (session_id2_len == 0) {
+		session_id2_len = data.length;
+		session_id2 = xmalloc(session_id2_len);
+		memcpy(session_id2, data.value, session_id2_len);
+	}
+	major = ssh_gssapi_sign(gsscontext, &data, &hash);
+
+	free(data.value);
+
+	buffer_clear(m);
+	buffer_put_int(m, major);
+	buffer_put_string(m, hash.value, hash.length);
+
+	mm_request_send(socket, MONITOR_ANS_GSSSIGN, m);
+
+	gss_release_buffer(&minor, &hash);
+
+	/* Turn on getpwnam permissions */
+	monitor_permit(mon_dispatch, MONITOR_REQ_PWNAM, 1);
+	
+	/* And credential updating, for when rekeying */
+	monitor_permit(mon_dispatch, MONITOR_REQ_GSSUPCREDS, 1);
+
+	return (0);
+}
+
+int
+mm_answer_gss_updatecreds(int socket, Buffer *m) {
+	ssh_gssapi_ccache store;
+	int ok;
+
+	if (!options.gss_authentication && !options.gss_keyex)
+		fatal("%s: GSSAPI not enabled", __func__);
+
+	store.filename = buffer_get_string(m, NULL);
+	store.envvar   = buffer_get_string(m, NULL);
+	store.envval   = buffer_get_string(m, NULL);
+
+	ok = ssh_gssapi_update_creds(&store);
+
+	free(store.filename);
+	free(store.envvar);
+	free(store.envval);
+
+	buffer_clear(m);
+	buffer_put_int(m, ok);
+
+	mm_request_send(socket, MONITOR_ANS_GSSUPCREDS, m);
+
+	return(0);
+}
+
 #endif /* GSSAPI */
 
