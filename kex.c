@@ -54,6 +54,10 @@
 #include "sshbuf.h"
 #include "digest.h"
 
+#ifdef GSSAPI
+#include "ssh-gss.h"
+#endif
+
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
 # if defined(HAVE_EVP_SHA256)
 # define evp_ssh_sha256 EVP_sha256
@@ -113,6 +117,14 @@ static const struct kexalg kexalgs[] = {
 #endif /* HAVE_EVP_SHA256 || !WITH_OPENSSL */
 	{ NULL, -1, -1, -1},
 };
+static const struct kexalg kexalg_prefixes[] = {
+#ifdef GSSAPI
+	{ KEX_GSS_GEX_SHA1_ID, KEX_GSS_GEX_SHA1, 0, SSH_DIGEST_SHA1 },
+	{ KEX_GSS_GRP1_SHA1_ID, KEX_GSS_GRP1_SHA1, 0, SSH_DIGEST_SHA1 },
+	{ KEX_GSS_GRP14_SHA1_ID, KEX_GSS_GRP14_SHA1, 0, SSH_DIGEST_SHA1 },
+#endif
+	{ NULL, -1, -1, -1 },
+};
 
 char *
 kex_alg_list(char sep)
@@ -143,6 +155,10 @@ kex_alg_by_name(const char *name)
 
 	for (k = kexalgs; k->name != NULL; k++) {
 		if (strcmp(k->name, name) == 0)
+			return k;
+	}
+	for (k = kexalg_prefixes; k->name != NULL; k++) {
+		if (strncmp(k->name, name, strlen(k->name)) == 0)
 			return k;
 	}
 	return NULL;
@@ -597,6 +613,9 @@ kex_free(struct kex *kex)
 	sshbuf_free(kex->peer);
 	sshbuf_free(kex->my);
 	free(kex->session_id);
+#ifdef GSSAPI
+	free(kex->gss_host);
+#endif /* GSSAPI */
 	free(kex->client_version_string);
 	free(kex->server_version_string);
 	free(kex->failed_choice);

@@ -113,6 +113,10 @@
 #include "ssherr.h"
 #include "hostfile.h"
 
+#ifdef GSSAPI
+#include "ssh-gss.h"
+#endif
+
 /* import options */
 extern Options options;
 
@@ -1664,8 +1668,17 @@ client_loop(int have_pty, int escape_char_arg, int ssh2_chan_id)
 			break;
 
 		/* Do channel operations unless rekeying in progress. */
-		if (!ssh_packet_is_rekeying(active_state))
+		if (!ssh_packet_is_rekeying(active_state)) {
 			channel_after_select(readset, writeset);
+
+#ifdef GSSAPI
+			if (options.gss_renewal_rekey &&
+			    ssh_gssapi_credentials_updated(NULL)) {
+				debug("credentials updated - forcing rekey");
+				need_rekeying = 1;
+			}
+#endif
+		}
 
 		/* Buffer input from the connection.  */
 		client_process_net_input(readset);
