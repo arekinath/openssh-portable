@@ -181,7 +181,7 @@ char *key_type_name = NULL;
 char *pkcs11provider = NULL;
 
 /* Use new OpenSSH private key format when writing SSH2 keys instead of PEM */
-int use_new_format = 1;
+int use_new_format = -1;
 
 /* Cipher for new-format private keys */
 char *new_format_cipher = NULL;
@@ -1035,6 +1035,9 @@ do_gen_all_hostkeys(struct passwd *pw)
 	int i, type, fd, r;
 	FILE *f;
 
+	if (use_new_format == -1)
+		use_new_format = 0;
+
 	for (i = 0; key_types[i].key_type; i++) {
 		public = private = NULL;
 		prv_tmp = pub_tmp = prv_file = pub_file = NULL;
@@ -1421,6 +1424,12 @@ do_change_passphrase(struct passwd *pw)
 		free(passphrase2);
 	}
 
+	if (strlen(passphrase1) > 0 && use_new_format == -1) {
+		use_new_format = 1;
+	} else if (use_new_format == -1) {
+		use_new_format = 0;
+	}
+
 	/* Save the file using the new passphrase. */
 	if ((r = sshkey_save_private(private, identity_file, passphrase1,
 	    comment, use_new_format, new_format_cipher, rounds)) != 0) {
@@ -1508,6 +1517,12 @@ do_change_comment(struct passwd *pw)
 			fatal("Cannot load private key \"%s\": %s.",
 			    identity_file, ssh_err(r));
 		}
+	}
+
+	if (strlen(passphrase) > 0 && use_new_format == -1) {
+		use_new_format = 1;
+	} else if (use_new_format == -1) {
+		use_new_format = 0;
 	}
 
 	if (private->type != KEY_ED25519 && private->type != KEY_XMSS &&
@@ -2546,7 +2561,7 @@ main(int argc, char **argv)
 			cert_principals = optarg;
 			break;
 		case 'o':
-			/* no-op; new format is already the default */
+			use_new_format = 1;
 			break;
 		case 'p':
 			change_passphrase = 1;
@@ -2904,6 +2919,12 @@ passphrase_again:
 	} else {
 		/* Create default comment field for the passphrase. */
 		snprintf(comment, sizeof comment, "%s@%s", pw->pw_name, hostname);
+	}
+
+	if (strlen(passphrase1) > 0 && use_new_format == -1) {
+		use_new_format = 1;
+	} else if (use_new_format == -1) {
+		use_new_format = 0;
 	}
 
 	/* Save the key with the given passphrase and comment. */
