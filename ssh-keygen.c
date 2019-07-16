@@ -160,7 +160,8 @@ static char *pkcs11provider = NULL;
 static char *sk_provider = NULL;
 
 /* Format for writing private keys */
-static int private_key_format = SSHKEY_PRIVATE_OPENSSH;
+static int private_key_format = SSHKEY_PRIVATE_PEM;
+int use_new_format = -1;
 
 /* Cipher for new-format private keys */
 static char *openssh_format_cipher = NULL;
@@ -1465,6 +1466,10 @@ do_change_passphrase(struct passwd *pw)
 		freezero(passphrase2, strlen(passphrase2));
 	}
 
+	if (strlen(passphrase1) > 0 && use_new_format == -1) {
+		private_key_format = SSHKEY_PRIVATE_OPENSSH;
+	}
+
 	/* Save the file using the new passphrase. */
 	if ((r = sshkey_save_private(private, identity_file, passphrase1,
 	    comment, private_key_format, openssh_format_cipher, rounds)) != 0) {
@@ -1546,6 +1551,10 @@ do_change_comment(struct passwd *pw, const char *identity_comment)
 			fatal_r(r, "Cannot load private key \"%s\"",
 			    identity_file);
 		}
+	}
+
+	if (strlen(passphrase) > 0 && use_new_format == -1) {
+		private_key_format = SSHKEY_PRIVATE_OPENSSH;
 	}
 
 	if (private->type != KEY_ED25519 && private->type != KEY_XMSS &&
@@ -3226,11 +3235,13 @@ main(int argc, char **argv)
 			if (strcasecmp(optarg, "PKCS8") == 0) {
 				convert_format = FMT_PKCS8;
 				private_key_format = SSHKEY_PRIVATE_PKCS8;
+				use_new_format = 0;
 				break;
 			}
 			if (strcasecmp(optarg, "PEM") == 0) {
 				convert_format = FMT_PEM;
 				private_key_format = SSHKEY_PRIVATE_PEM;
+				use_new_format = 0;
 				break;
 			}
 			fatal("Unsupported conversion format \"%s\"", optarg);
@@ -3238,7 +3249,8 @@ main(int argc, char **argv)
 			cert_principals = optarg;
 			break;
 		case 'o':
-			/* no-op; new format is already the default */
+			private_key_format = SSHKEY_PRIVATE_OPENSSH;
+			use_new_format = 1;
 			break;
 		case 'p':
 			change_passphrase = 1;
@@ -3682,6 +3694,10 @@ main(int argc, char **argv)
 	} else {
 		/* Create default comment field for the passphrase. */
 		snprintf(comment, sizeof comment, "%s@%s", pw->pw_name, hostname);
+	}
+
+	if (strlen(passphrase) > 0 && use_new_format == -1) {
+		private_key_format = SSHKEY_PRIVATE_OPENSSH;
 	}
 
 	/* Save the key with the given passphrase and comment. */
