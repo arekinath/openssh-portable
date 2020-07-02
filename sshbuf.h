@@ -208,6 +208,13 @@ int	sshbuf_put_string(struct sshbuf *buf, const void *v, size_t len);
 int	sshbuf_put_cstring(struct sshbuf *buf, const char *v);
 int	sshbuf_put_stringb(struct sshbuf *buf, const struct sshbuf *v);
 
+int	sshbuf_get_string8(struct sshbuf *buf, u_char **valp, size_t *lenp);
+int	sshbuf_get_cstring8(struct sshbuf *buf, char **valp, size_t *lenp);
+int	sshbuf_get_stringb8(struct sshbuf *buf, struct sshbuf *v);
+int	sshbuf_put_string8(struct sshbuf *buf, const void *v, size_t len);
+int	sshbuf_put_cstring8(struct sshbuf *buf, const char *v);
+int	sshbuf_put_stringb8(struct sshbuf *buf, const struct sshbuf *v);
+
 /*
  * "Direct" variant of sshbuf_get_string, returns pointer into the sshbuf to
  * avoid an malloc+memcpy. The pointer is guaranteed to be valid until the
@@ -215,12 +222,17 @@ int	sshbuf_put_stringb(struct sshbuf *buf, const struct sshbuf *v);
  */
 int	sshbuf_get_string_direct(struct sshbuf *buf, const u_char **valp,
 	    size_t *lenp);
+int	sshbuf_get_string8_direct(struct sshbuf *buf, const u_char **valp,
+	    size_t *lenp);
 
 /* Skip past a string */
 #define sshbuf_skip_string(buf) sshbuf_get_string_direct(buf, NULL, NULL)
+#define sshbuf_skip_string8(buf) sshbuf_get_string8_direct(buf, NULL, NULL)
 
 /* Another variant: "peeks" into the buffer without modifying it */
 int	sshbuf_peek_string_direct(const struct sshbuf *buf, const u_char **valp,
+	    size_t *lenp);
+int	sshbuf_peek_string8_direct(const struct sshbuf *buf, const u_char **valp,
 	    size_t *lenp);
 
 /*
@@ -238,6 +250,10 @@ int	sshbuf_get_ec(struct sshbuf *buf, EC_POINT *v, const EC_GROUP *g);
 int	sshbuf_get_eckey(struct sshbuf *buf, EC_KEY *v);
 int	sshbuf_put_ec(struct sshbuf *buf, const EC_POINT *v, const EC_GROUP *g);
 int	sshbuf_put_eckey(struct sshbuf *buf, const EC_KEY *v);
+
+int	sshbuf_get_eckey8(struct sshbuf *buf, EC_KEY *v);
+int	sshbuf_put_ec8(struct sshbuf *buf, const EC_POINT *v, const EC_GROUP *g);
+int	sshbuf_put_eckey8(struct sshbuf *buf, const EC_KEY *v);
 # endif /* OPENSSL_HAS_ECC */
 #endif /* WITH_OPENSSL */
 

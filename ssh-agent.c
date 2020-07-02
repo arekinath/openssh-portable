@@ -52,6 +52,7 @@
 
 #ifdef WITH_OPENSSL
 #include <openssl/evp.h>
+#include <openssl/err.h>
 #include "openbsd-compat/openssl-compat.h"
 #endif
 
@@ -91,6 +92,7 @@
 #include "pathnames.h"
 #include "ssh-pkcs11.h"
 #include "sk-api.h"
+#include "cipher.h"
 
 #ifndef DEFAULT_PROVIDER_WHITELIST
 # define DEFAULT_PROVIDER_WHITELIST "/usr/lib*/*,/usr/local/lib*/*"
@@ -136,6 +138,86 @@ struct idtable {
 /* private key table */
 struct idtable *idtab;
 
+struct apdubuf {
+	uint8_t *b_data;
+	size_t b_offset;
+	size_t b_size;
+	size_t b_len;
+};
+
+enum piv_box_version {
+	PIV_BOX_V1 = 0x01,
+	/* Version 2 added the nonce field. */
+	PIV_BOX_V2 = 0x02,
+	PIV_BOX_VNEXT
+};
+
+enum piv_slotid {
+	PIV_SLOT_9A = 0x9A,
+	PIV_SLOT_9B = 0x9B,
+	PIV_SLOT_9C = 0x9C,
+	PIV_SLOT_9D = 0x9D,
+	PIV_SLOT_9E = 0x9E,
+
+	PIV_SLOT_82 = 0x82,
+	PIV_SLOT_95 = 0x95,
+
+	PIV_SLOT_F9 = 0xF9,
+
+	PIV_SLOT_PIV_AUTH = PIV_SLOT_9A,
+	PIV_SLOT_ADMIN = PIV_SLOT_9B,
+	PIV_SLOT_SIGNATURE = PIV_SLOT_9C,
+	PIV_SLOT_KEY_MGMT = PIV_SLOT_9D,
+	PIV_SLOT_CARD_AUTH = PIV_SLOT_9E,
+
+	PIV_SLOT_RETIRED_1 = PIV_SLOT_82,
+	PIV_SLOT_RETIRED_20 = PIV_SLOT_95,
+
+	PIV_SLOT_YK_ATTESTATION = PIV_SLOT_F9,
+};
+
+struct piv_ecdh_box {
+	/* Actually one of the piv_box_version values */
+	uint8_t pdb_version;
+
+	/* If true, the pdb_guid/pdb_slot fields are populated. */
+	int pdb_guidslot_valid;
+	uint8_t pdb_guid[16];
+	enum piv_slotid pdb_slot;
+
+	/* Cached cstring hex version of pdb_guid */
+	char *pdb_guidhex;
+
+	/* The ephemeral public key that does DH with pdb_pub */
+	struct sshkey *pdb_ephem_pub;
+	/* The public key we intend to be able to unlock the box */
+	struct sshkey *pdb_pub;
+
+	/*
+	 * If true, pdb_cipher/kdf were malloc'd by us and should be freed
+	 * in piv_box_free()
+	 */
+	int pdb_free_str;
+	const char *pdb_cipher;		/* OpenSSH cipher.c alg name */
+	const char *pdb_kdf;		/* OpenSSH digest.c alg name */
+
+	struct apdubuf pdb_nonce;
+	struct apdubuf pdb_iv;
+	struct apdubuf pdb_enc;
+
+	/*
+	 * Never written out as part of the box structure: the in-memory
+	 * cached plaintext after we unseal a box goes here.
+	 */
+	struct apdubuf pdb_plain;
+
+	/*
+	 * This is for ebox to use to supply an alternative ephemeral _private_
+	 * key for sealing (nobody else should use this!)
+	 */
+	struct sshkey *pdb_ephem;
+};
+
 int max_fd = 0;
 
 /* pid of shell == parent of agent */
@@ -166,6 +248,645 @@ extern char *__progname;
 static long lifetime = 0;
 
 static int fingerprint_hash = SSH_FP_HASH_DEFAULT;
+
+static int
+sshbuf_put_piv_box(struct sshbuf *buf, struct piv_ecdh_box *box)
+{
+	int rc;
+	const char *tname;
+	uint8_t ver;
+
+	if (box->pdb_pub->type != KEY_ECDSA ||
+	    box->pdb_ephem_pub->type != KEY_ECDSA) {
+		error("Box public key and ephemeral public key must both be "
+		    "ECDSA keys (instead they are %s and %s)",
+		    sshkey_type(box->pdb_pub),
+		    sshkey_type(box->pdb_ephem_pub));
+		return (SSH_ERR_INVALID_ARGUMENT);
+	}
+	if (box->pdb_pub->ecdsa_nid != box->pdb_ephem_pub->ecdsa_nid) {
+		error("Box public and ephemeral key must be on the same "
+		    "EC curve");
+		return (SSH_ERR_INVALID_ARGUMENT);
+	}
+
+	if ((rc = sshbuf_put_u8(buf, 0xB0)) ||
+	    (rc = sshbuf_put_u8(buf, 0xC5)))
+		return (rc);
+	ver = box->pdb_version;
+	if ((rc = sshbuf_put_u8(buf, ver)))
+		return (rc);
+	if (!box->pdb_guidslot_valid) {
+		if ((rc = sshbuf_put_u8(buf, 0x00)) ||
+		    (rc = sshbuf_put_u8(buf, 0x00)) ||
+		    (rc = sshbuf_put_u8(buf, 0x00)))
+			return (rc);
+	} else {
+		if ((rc = sshbuf_put_u8(buf, 0x01)))
+			return (rc);
+		rc = sshbuf_put_string8(buf, box->pdb_guid,
+		    sizeof (box->pdb_guid));
+		if (rc)
+			return (rc);
+		if ((rc = sshbuf_put_u8(buf, box->pdb_slot)))
+			return (rc);
+	}
+	if ((rc = sshbuf_put_cstring8(buf, box->pdb_cipher)) ||
+	    (rc = sshbuf_put_cstring8(buf, box->pdb_kdf)))
+		return (rc);
+
+	if (ver >= PIV_BOX_V2) {
+		if ((rc = sshbuf_put_string8(buf, box->pdb_nonce.b_data,
+		    box->pdb_nonce.b_len)))
+			return (rc);
+	}
+
+	tname = sshkey_curve_nid_to_name(box->pdb_pub->ecdsa_nid);
+	if ((rc = sshbuf_put_cstring8(buf, tname)))
+		return (rc);
+	if ((rc = sshbuf_put_eckey8(buf, box->pdb_pub->ecdsa)) ||
+	    (rc = sshbuf_put_eckey8(buf, box->pdb_ephem_pub->ecdsa)))
+		return (rc);
+
+	if ((rc = sshbuf_put_string8(buf, box->pdb_iv.b_data,
+	    box->pdb_iv.b_len)))
+		return (rc);
+
+	if ((rc = sshbuf_put_string(buf, box->pdb_enc.b_data,
+	    box->pdb_enc.b_len)))
+		return (rc);
+
+	return (0);
+}
+
+static void
+piv_box_free(struct piv_ecdh_box *box)
+{
+	if (box == NULL)
+		return;
+	sshkey_free(box->pdb_ephem_pub);
+	sshkey_free(box->pdb_pub);
+	if (box->pdb_free_str) {
+		free((void *)box->pdb_cipher);
+		free((void *)box->pdb_kdf);
+	}
+	free(box->pdb_iv.b_data);
+	free(box->pdb_enc.b_data);
+	free(box->pdb_nonce.b_data);
+	free(box->pdb_guidhex);
+	if (box->pdb_plain.b_data != NULL) {
+		freezero(box->pdb_plain.b_data, box->pdb_plain.b_size);
+	}
+	free(box);
+}
+
+static struct piv_ecdh_box *
+piv_box_new(void)
+{
+	struct piv_ecdh_box *box;
+	box = calloc(1, sizeof (struct piv_ecdh_box));
+	box->pdb_version = PIV_BOX_VNEXT - 1;
+	return (box);
+}
+
+static int
+sshbuf_get_piv_box(struct sshbuf *buf, struct piv_ecdh_box **outbox)
+{
+	struct piv_ecdh_box *box = NULL;
+	uint8_t ver, magic[2];
+	int rc = 0;
+	uint8_t *tmpbuf = NULL;
+	struct sshkey *k = NULL;
+	size_t len;
+	uint8_t temp;
+	char *tname = NULL;
+
+	box = piv_box_new();
+	if (box == NULL)
+		fatal("%s: memory allocation failed", __func__);
+
+	if ((rc = sshbuf_get_u8(buf, &magic[0])) ||
+	    (rc = sshbuf_get_u8(buf, &magic[1]))) {
+		goto out;
+	}
+	if (magic[0] != 0xB0 && magic[1] != 0xC5) {
+		verbose("%s: invalid magic (0x%02x%02x)", __func__,
+		    magic[0], magic[1]);
+		rc = SSH_ERR_INVALID_FORMAT;
+		goto out;
+	}
+	if ((rc = sshbuf_get_u8(buf, &ver))) {
+		goto out;
+	}
+	if (ver < PIV_BOX_V1 || ver >= PIV_BOX_VNEXT) {
+		verbose("%s: invalid box version: %d", __func__, ver);
+		rc = SSH_ERR_INVALID_FORMAT;
+		goto out;
+	}
+	box->pdb_version = ver;
+
+	if ((rc = sshbuf_get_u8(buf, &temp))) {
+		goto out;
+	}
+	box->pdb_guidslot_valid = (temp != 0x00);
+
+	if ((rc = sshbuf_get_string8(buf, &tmpbuf, &len))) {
+		goto out;
+	}
+	if (box->pdb_guidslot_valid && len != sizeof (box->pdb_guid)) {
+		rc = SSH_ERR_MESSAGE_INCOMPLETE;
+		goto out;
+	} else if (box->pdb_guidslot_valid) {
+		bcopy(tmpbuf, box->pdb_guid, len);
+	}
+	free(tmpbuf);
+	tmpbuf = NULL;
+	if ((rc = sshbuf_get_u8(buf, &temp))) {
+		goto out;
+	}
+	if (box->pdb_guidslot_valid)
+		box->pdb_slot = temp;
+
+	box->pdb_free_str = 1;
+	if ((rc = sshbuf_get_cstring8(buf, (char **)&box->pdb_cipher, NULL)) ||
+	    (rc = sshbuf_get_cstring8(buf, (char **)&box->pdb_kdf, NULL))) {
+		goto out;
+	}
+
+	if (ver >= PIV_BOX_V2) {
+		if ((rc = sshbuf_get_string8(buf, &box->pdb_nonce.b_data,
+		    &box->pdb_nonce.b_size))) {
+			goto out;
+		}
+		box->pdb_nonce.b_len = box->pdb_nonce.b_size;
+	}
+
+	if ((rc = sshbuf_get_cstring8(buf, &tname, NULL))) {
+		goto out;
+	}
+	k = sshkey_new(KEY_ECDSA);
+	k->ecdsa_nid = sshkey_curve_name_to_nid(tname);
+	if (k->ecdsa_nid == -1) {
+		rc = SSH_ERR_EC_CURVE_MISMATCH;
+		goto out;
+	}
+
+	k->ecdsa = EC_KEY_new_by_curve_name(k->ecdsa_nid);
+	if (k->ecdsa == NULL)
+		fatal("%s: new ec key for pub failed", __func__);
+
+	if ((rc = sshbuf_get_eckey8(buf, k->ecdsa))) {
+		goto out;
+	}
+	if ((rc = sshkey_ec_validate_public(EC_KEY_get0_group(k->ecdsa),
+	    EC_KEY_get0_public_key(k->ecdsa)))) {
+		goto out;
+	}
+	box->pdb_pub = k;
+	k = NULL;
+
+	k = sshkey_new(KEY_ECDSA);
+	k->ecdsa_nid = box->pdb_pub->ecdsa_nid;
+
+	k->ecdsa = EC_KEY_new_by_curve_name(k->ecdsa_nid);
+	if (k->ecdsa == NULL)
+		fatal("%s: new ec key for ephem pub failed", __func__);
+
+	if ((rc = sshbuf_get_eckey8(buf, k->ecdsa))) {
+		goto out;
+	}
+	if ((rc = sshkey_ec_validate_public(EC_KEY_get0_group(k->ecdsa),
+	    EC_KEY_get0_public_key(k->ecdsa)))) {
+		goto out;
+	}
+	box->pdb_ephem_pub = k;
+	k = NULL;
+
+	if ((rc = sshbuf_get_string8(buf, &box->pdb_iv.b_data,
+	    &box->pdb_iv.b_size))) {
+		goto out;
+	}
+	box->pdb_iv.b_len = box->pdb_iv.b_size;
+	if ((rc = sshbuf_get_string(buf, &box->pdb_enc.b_data,
+	    &box->pdb_enc.b_size))) {
+		goto out;
+	}
+	box->pdb_enc.b_len = box->pdb_enc.b_size;
+
+	*outbox = box;
+	box = NULL;
+	rc = 0;
+
+out:
+	piv_box_free(box);
+	if (k != NULL)
+		sshkey_free(k);
+	free(tname);
+	free(tmpbuf);
+	return (rc);
+}
+
+static int
+piv_box_open_offline(struct sshkey *privkey, struct piv_ecdh_box *box)
+{
+	const struct sshcipher *cipher;
+	int dgalg;
+	struct sshcipher_ctx *cctx;
+	struct ssh_digest_ctx *dgctx;
+	uint8_t *iv, *key, *sec, *enc, *plain;
+	size_t ivlen, authlen, blocksz, keylen, dglen, seclen;
+	size_t fieldsz, plainlen, enclen;
+	size_t reallen, padding, i;
+	int was_shielded = sshkey_is_shielded(privkey);
+	int rv;
+
+	cipher = cipher_by_name(box->pdb_cipher);
+	if (cipher == NULL) {
+		char *temp = malloc(strlen(box->pdb_cipher) + 13);
+		if (temp == NULL)
+			return (SSH_ERR_ALLOC_FAIL);
+		temp[0] = 0;
+		strcat(temp, box->pdb_cipher);
+		strcat(temp, "@openssh.com");
+		cipher = cipher_by_name(temp);
+		free(temp);
+		if (cipher == NULL) {
+			verbose("%s: unknown cipher: %s", __func__,
+			    box->pdb_cipher);
+			return (SSH_ERR_KEY_TYPE_UNKNOWN);
+		}
+	}
+	ivlen = cipher_ivlen(cipher);
+	authlen = cipher_authlen(cipher);
+	blocksz = cipher_blocksize(cipher);
+	keylen = cipher_keylen(cipher);
+	/* TODO: support non-authenticated ciphers by adding an HMAC */
+	if (authlen == 0) {
+		verbose("%s: non-authenticated cipher", __func__);
+		return (SSH_ERR_KEY_TYPE_MISMATCH);
+	}
+
+	dgalg = ssh_digest_alg_by_name(box->pdb_kdf);
+	if (dgalg == -1) {
+		verbose("%s: unknown digest alg: %s", __func__, box->pdb_kdf);
+		return (SSH_ERR_KEY_TYPE_UNKNOWN);
+	}
+	dglen = ssh_digest_bytes(dgalg);
+	if (dglen < keylen) {
+		verbose("%s: dglen/keylen mismatch", __func__);
+		return (SSH_ERR_KEY_TYPE_MISMATCH);
+	}
+
+	fieldsz = EC_GROUP_get_degree(EC_KEY_get0_group(privkey->ecdsa));
+	seclen = (fieldsz + 7) / 8;
+	sec = calloc(1, seclen);
+	if (sec == NULL)
+		fatal("%s: memory allocation failed", __func__);
+	if ((rv = sshkey_unshield_private(privkey)) != 0) {
+		verbose("%s: failed to unshield: %s", __func__, ssh_err(rv));
+		return (rv);
+	}
+	rv = ECDH_compute_key(sec, seclen,
+	    EC_KEY_get0_public_key(box->pdb_ephem_pub->ecdsa), privkey->ecdsa,
+	    NULL);
+	if (was_shielded)
+		sshkey_shield_private(privkey);
+	if (rv <= 0) {
+		unsigned long ssl_err = ERR_peek_last_error();
+		free(sec);
+		error("%s: openssl error: %ld", __func__, ssl_err);
+		return (SSH_ERR_LIBCRYPTO_ERROR);
+	}
+	seclen = (size_t)rv;
+
+	dgctx = ssh_digest_start(dgalg);
+	if (dgctx == NULL)
+		fatal("%s: memory allocation failed", __func__);
+	ssh_digest_update(dgctx, sec, seclen);
+	if (box->pdb_nonce.b_len > 0) {
+		/*
+		 * In the original libnacl/libsodium box primitive, the nonce
+		 * is combined with the ECDH output in a more complex way than
+		 * this. Based on reading the RFCs for systems like OpenSSH,
+		 * though, this method (simply concat'ing them and hashing)
+		 * seems to be acceptable.
+		 *
+		 * We never publish this hash value (it's the symmetric key!)
+		 * so we don't need to worry about length extension attacks and
+		 * similar.
+		 */
+		ssh_digest_update(dgctx, box->pdb_nonce.b_data +
+		    box->pdb_nonce.b_offset, box->pdb_nonce.b_len);
+	}
+	key = calloc(1, dglen);
+	if (key == NULL)
+		fatal("%s: memory allocation failed", __func__);
+	ssh_digest_final(dgctx, key, dglen);
+	ssh_digest_free(dgctx);
+
+	freezero(sec, seclen);
+
+	iv = box->pdb_iv.b_data + box->pdb_iv.b_offset;
+	if (box->pdb_iv.b_len != ivlen) {
+		return (SSH_ERR_MESSAGE_INCOMPLETE);
+	}
+
+	enc = box->pdb_enc.b_data + box->pdb_enc.b_offset;
+	enclen = box->pdb_enc.b_len;
+	if (enclen < authlen + blocksz) {
+		return (SSH_ERR_MESSAGE_INCOMPLETE);
+	}
+
+	plainlen = enclen - authlen;
+	plain = calloc(1, plainlen);
+	if (plain == NULL)
+		fatal("%s: memory allocation failed", __func__);
+
+	cipher_init(&cctx, cipher, key, keylen, iv, ivlen, 0);
+	rv = cipher_crypt(cctx, 0, plain, enc, enclen - authlen, 0,
+	    authlen);
+	cipher_free(cctx);
+
+	freezero(key, dglen);
+
+	if (rv != 0) {
+		return (rv);
+	}
+
+	/* Strip off the pkcs#7 padding and verify it. */
+	padding = plain[plainlen - 1];
+	if (padding < 1 || padding > blocksz)
+		goto paderr;
+	reallen = plainlen - padding;
+	for (i = reallen; i < plainlen; ++i) {
+		if (plain[i] != padding) {
+			goto paderr;
+		}
+	}
+
+	if (box->pdb_plain.b_data != NULL) {
+		freezero(box->pdb_plain.b_data, box->pdb_plain.b_size);
+	}
+	box->pdb_plain.b_data = plain;
+	box->pdb_plain.b_size = plainlen;
+	box->pdb_plain.b_len = reallen;
+	box->pdb_plain.b_offset = 0;
+
+	return (0);
+
+paderr:
+	freezero(plain, plainlen);
+	return (SSH_ERR_MAC_INVALID);
+}
+
+static int
+piv_box_set_data(struct piv_ecdh_box *box, const uint8_t *data, size_t len)
+{
+	uint8_t *buf;
+	if (box->pdb_plain.b_data != NULL)
+		fatal("%s: box already full", __func__);
+
+	buf = calloc(1, len);
+	if (buf == NULL)
+		return (SSH_ERR_ALLOC_FAIL);
+	box->pdb_plain.b_data = buf;
+	box->pdb_plain.b_size = len;
+	box->pdb_plain.b_len = len;
+	box->pdb_plain.b_offset = 0;
+
+	bcopy(data, buf, len);
+
+	return (0);
+}
+
+static int
+piv_box_take_data(struct piv_ecdh_box *box, uint8_t **data, size_t *len)
+{
+	if (box->pdb_plain.b_data == NULL) {
+		return (SSH_ERR_CONN_CLOSED);
+	}
+
+	*data = calloc(1, box->pdb_plain.b_len);
+	if (*data == NULL)
+		return (SSH_ERR_ALLOC_FAIL);
+	*len = box->pdb_plain.b_len;
+	bcopy(box->pdb_plain.b_data + box->pdb_plain.b_offset, *data, *len);
+
+	freezero(box->pdb_plain.b_data, box->pdb_plain.b_size);
+	box->pdb_plain.b_data = NULL;
+	box->pdb_plain.b_size = 0;
+	box->pdb_plain.b_len = 0;
+	box->pdb_plain.b_offset = 0;
+
+	return (0);
+}
+
+static int
+piv_box_to_binary(struct piv_ecdh_box *box, uint8_t **output, size_t *len)
+{
+	struct sshbuf *buf;
+	int r;
+
+	buf = sshbuf_new();
+	if (buf == NULL)
+		return (SSH_ERR_ALLOC_FAIL);
+
+	if ((r = sshbuf_put_piv_box(buf, box)) != 0) {
+		sshbuf_free(buf);
+		return (r);
+	}
+
+	*len = sshbuf_len(buf);
+	*output = calloc(1, *len);
+	if (*output == NULL) {
+		sshbuf_free(buf);
+		return (SSH_ERR_ALLOC_FAIL);
+	}
+	bcopy(sshbuf_ptr(buf), *output, *len);
+	sshbuf_free(buf);
+
+	return (0);
+}
+
+#define	BOX_DEFAULT_CIPHER	"chacha20-poly1305"
+#define	BOX_DEFAULT_KDF		"sha512"
+
+static int
+piv_box_seal_offline(struct sshkey *pubk, struct piv_ecdh_box *box)
+{
+	const struct sshcipher *cipher;
+	int rv;
+	int dgalg;
+	struct sshkey *pkey;
+	struct sshcipher_ctx *cctx;
+	struct ssh_digest_ctx *dgctx;
+	uint8_t *iv, *key, *sec, *enc, *plain, *nonce;
+	size_t ivlen, authlen, blocksz, keylen, dglen, seclen, noncelen;
+	size_t fieldsz, plainlen, enclen;
+	size_t padding, i;
+
+	if (pubk->type != KEY_ECDSA) {
+		return (SSH_ERR_KEY_TYPE_MISMATCH);
+	}
+
+	if (box->pdb_ephem == NULL) {
+		rv = sshkey_generate(KEY_ECDSA, sshkey_size(pubk), &pkey);
+		if (rv != 0) {
+			return (rv);
+		}
+	} else {
+		pkey = box->pdb_ephem;
+	}
+	if ((rv = sshkey_from_private(pkey, &box->pdb_ephem_pub)) != 0)
+		return (rv);
+
+	if (box->pdb_cipher == NULL)
+		box->pdb_cipher = BOX_DEFAULT_CIPHER;
+	if (box->pdb_kdf == NULL)
+		box->pdb_kdf = BOX_DEFAULT_KDF;
+
+	cipher = cipher_by_name(box->pdb_cipher);
+	if (cipher == NULL) {
+		char *temp = malloc(strlen(box->pdb_cipher) + 13);
+		if (temp == NULL)
+			return (SSH_ERR_ALLOC_FAIL);
+		temp[0] = 0;
+		strcat(temp, box->pdb_cipher);
+		strcat(temp, "@openssh.com");
+		cipher = cipher_by_name(temp);
+		free(temp);
+		if (cipher == NULL) {
+			verbose("%s: unknown cipher: %s", __func__,
+			    box->pdb_cipher);
+			return (SSH_ERR_KEY_TYPE_UNKNOWN);
+		}
+	}
+	ivlen = cipher_ivlen(cipher);
+	authlen = cipher_authlen(cipher);
+	blocksz = cipher_blocksize(cipher);
+	keylen = cipher_keylen(cipher);
+	/* TODO: support non-authenticated ciphers by adding an HMAC */
+	if (authlen == 0) {
+		return (SSH_ERR_KEY_UNKNOWN_CIPHER);
+	}
+
+	if (box->pdb_version >= PIV_BOX_V2 && (
+	    box->pdb_nonce.b_data == NULL || box->pdb_nonce.b_len == 0)) {
+		noncelen = 16;
+		nonce = calloc(1, noncelen);
+		if (nonce == NULL)
+			fatal("%s: memory alloc failed", __func__);
+		arc4random_buf(nonce, noncelen);
+
+		free(box->pdb_nonce.b_data);
+		box->pdb_nonce.b_data = nonce;
+		box->pdb_nonce.b_offset = 0;
+		box->pdb_nonce.b_size = noncelen;
+		box->pdb_nonce.b_len = noncelen;
+	}
+
+	dgalg = ssh_digest_alg_by_name(box->pdb_kdf);
+	if (dgalg == -1) {
+		return (SSH_ERR_KEY_UNKNOWN_CIPHER);
+	}
+	dglen = ssh_digest_bytes(dgalg);
+	if (dglen < keylen) {
+		return (SSH_ERR_KEY_TYPE_MISMATCH);
+	}
+
+	fieldsz = EC_GROUP_get_degree(EC_KEY_get0_group(pkey->ecdsa));
+	seclen = (fieldsz + 7) / 8;
+	sec = calloc(1, seclen);
+	if (sec == NULL)
+		fatal("%s: memory alloc failed", __func__);
+	rv = ECDH_compute_key(sec, seclen,
+	    EC_KEY_get0_public_key(pubk->ecdsa), pkey->ecdsa, NULL);
+	if (rv <= 0) {
+		free(sec);
+		return (SSH_ERR_LIBCRYPTO_ERROR);
+	}
+	seclen = (size_t)rv;
+
+	if (box->pdb_ephem == NULL)
+		sshkey_free(pkey);
+
+	dgctx = ssh_digest_start(dgalg);
+	if (dgctx == NULL)
+		fatal("%s: memory alloc failed", __func__);
+	ssh_digest_update(dgctx, sec, seclen);
+	if (box->pdb_nonce.b_len > 0) {
+		/* See comment in piv_box_open_offline */
+		ssh_digest_update(dgctx, box->pdb_nonce.b_data +
+		    box->pdb_nonce.b_offset, box->pdb_nonce.b_len);
+	}
+	key = calloc(1, dglen);
+	if (key == NULL)
+		fatal("%s: memory alloc failed", __func__);
+	ssh_digest_final(dgctx, key, dglen);
+	ssh_digest_free(dgctx);
+
+	freezero(sec, seclen);
+
+	iv = calloc(1, ivlen);
+	if (iv == NULL)
+		fatal("%s: memory alloc failed", __func__);
+	arc4random_buf(iv, ivlen);
+
+	free(box->pdb_iv.b_data);
+	box->pdb_iv.b_size = ivlen;
+	box->pdb_iv.b_len = ivlen;
+	box->pdb_iv.b_data = iv;
+	box->pdb_iv.b_offset = 0;
+
+	plainlen = box->pdb_plain.b_len;
+
+	/*
+	 * We add PKCS#7 style padding, consisting of up to a block of bytes,
+	 * all set to the number of padding bytes added. This is easy to strip
+	 * off after decryption and avoids the need to include and validate the
+	 * real length of the payload separately.
+	 */
+	padding = blocksz - (plainlen % blocksz);
+	if (padding > blocksz)
+		fatal("%s: padding > blocksz", __func__);
+	if (padding <= 0)
+		fatal("%s: padding <= 0", __func__);
+	plainlen += padding;
+	plain = calloc(1, plainlen);
+	if (plain == NULL)
+		fatal("%s: memory alloc failed", __func__);
+	bcopy(box->pdb_plain.b_data + box->pdb_plain.b_offset, plain,
+	    box->pdb_plain.b_len);
+	for (i = box->pdb_plain.b_len; i < plainlen; ++i)
+		plain[i] = padding;
+
+	freezero(box->pdb_plain.b_data, box->pdb_plain.b_size);
+	box->pdb_plain.b_data = NULL;
+	box->pdb_plain.b_size = 0;
+	box->pdb_plain.b_len = 0;
+
+	cipher_init(&cctx, cipher, key, keylen, iv, ivlen, 1);
+	enclen = plainlen + authlen;
+	enc = calloc(1, enclen);
+	if (enc == NULL)
+		fatal("%s: memory alloc failed", __func__);
+	cipher_crypt(cctx, 0, enc, plain, plainlen, 0, authlen);
+	cipher_free(cctx);
+
+	freezero(plain, plainlen);
+	freezero(key, dglen);
+
+	if ((rv = sshkey_from_private(pubk, &box->pdb_pub)) != 0)
+		fatal("%s: failed to copy key: %s", __func__, ssh_err(rv));
+
+	free(box->pdb_enc.b_data);
+	box->pdb_enc.b_data = enc;
+	box->pdb_enc.b_size = enclen;
+	box->pdb_enc.b_len = enclen;
+	box->pdb_enc.b_offset = 0;
+
+	return (0);
+}
 
 static void
 close_socket(SocketEntry *e)
@@ -767,6 +1488,297 @@ send:
 }
 #endif /* ENABLE_PKCS11 */
 
+struct exthandler {
+	const char *eh_name;
+	void (*eh_handler)(SocketEntry *, struct sshbuf *);
+};
+struct exthandler exthandlers[];
+
+static void
+process_ext_query(SocketEntry *e, struct sshbuf *buf)
+{
+	int r, n = 0;
+	struct exthandler *h;
+	struct sshbuf *msg;
+
+	if ((msg = sshbuf_new()) == NULL)
+		fatal("%s: sshbuf_new failed", __func__);
+
+	for (h = exthandlers; h->eh_name != NULL; ++h)
+		++n;
+
+	if ((r = sshbuf_put_u8(msg, SSH_AGENT_SUCCESS)) != 0 ||
+	    (r = sshbuf_put_u32(msg, n)) != 0)
+		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+	for (h = exthandlers; h->eh_name != NULL; ++h) {
+		if ((r = sshbuf_put_cstring(msg, h->eh_name)) != 0)
+			fatal("%s: buffer error: %s", __func__, ssh_err(r));
+	}
+
+	if ((r = sshbuf_put_stringb(e->output, msg)) != 0)
+		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+	sshbuf_free(msg);
+}
+
+static void
+process_ext_ecdh(SocketEntry *e, struct sshbuf *buf)
+{
+	struct sshbuf *msg;
+	struct sshkey *key = NULL;
+	struct sshkey *partner = NULL;
+	struct identity *id;
+	u_char *secret = NULL;
+	size_t seclen = 0, fieldsz;
+	u_int flags;
+	int r, ok = -1;
+	int was_shielded;
+
+	if ((msg = sshbuf_new()) == NULL)
+		fatal("%s: sshbuf_new failed", __func__);
+	if ((r = sshkey_froms(buf, &key)) ||
+	    (r = sshkey_froms(buf, &partner))) {
+		error("%s: couldn't parse request: %s", __func__, ssh_err(r));
+		goto send;
+	}
+	if ((r = sshbuf_get_u32(buf, &flags))) {
+		error("%s: couldn't parse request: %s", __func__, ssh_err(r));
+		goto send;
+	}
+
+	if (flags != 0) {
+		error("%s: invalid flags: %u", __func__, flags);
+		goto send;
+	}
+
+	if ((id = lookup_identity(key)) == NULL) {
+		verbose("%s: %s key not found", __func__, sshkey_type(key));
+		goto send;
+	}
+	if (id->confirm && confirm_key(id) != 0) {
+		verbose("%s: user refused key", __func__);
+		goto send;
+	}
+	if (sshkey_is_sk(id->key)) {
+		verbose("%s: not supported for sk keys", __func__);
+		goto send;
+	}
+	if (id->key->type != KEY_ECDSA || id->key->ecdsa == NULL) {
+		verbose("%s: not an ecdsa key", __func__);
+		goto send;
+	}
+	if (id->key->ecdsa_nid != partner->ecdsa_nid) {
+		verbose("%s: curve mismatch", __func__);
+		goto send;
+	}
+
+	fieldsz = EC_GROUP_get_degree(EC_KEY_get0_group(id->key->ecdsa));
+	seclen = (fieldsz + 7) / 8;
+	secret = calloc(1, seclen);
+	if (secret == NULL)
+		fatal("%s: failed to allocate memory", __func__);
+	was_shielded = sshkey_is_shielded(id->key);
+	if ((r = sshkey_unshield_private(id->key)) != 0) {
+		verbose("%s: failed to unshield: %s", __func__, ssh_err(r));
+		goto send;
+	}
+	r = ECDH_compute_key(secret, seclen,
+	    EC_KEY_get0_public_key(partner->ecdsa), id->key->ecdsa, NULL);
+	if (was_shielded)
+		sshkey_shield_private(id->key);
+	if (r <= 0) {
+		error("%s: openssl error: %d", __func__, r);
+		goto send;
+	}
+	seclen = (size_t)r;
+
+	ok = 0;
+
+send:
+	sshkey_free(key);
+	sshkey_free(partner);
+	if (ok == 0) {
+		if ((r = sshbuf_put_u8(msg, SSH_AGENT_SUCCESS)) != 0 ||
+		    (r = sshbuf_put_string(msg, secret, seclen)) != 0)
+			fatal("%s: buffer error: %s", __func__, ssh_err(r));
+	} else if ((r = sshbuf_put_u8(msg, SSH2_AGENT_EXT_FAILURE)) != 0)
+		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+
+	if ((r = sshbuf_put_stringb(e->output, msg)) != 0)
+		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+
+	sshbuf_free(msg);
+	if (seclen > 0)
+		explicit_bzero(secret, seclen);
+	free(secret);
+}
+
+static void
+process_ext_ecdh_rebox(SocketEntry *e, struct sshbuf *buf)
+{
+	struct sshbuf *msg, *boxbuf = NULL, *guidb = NULL;
+	struct sshkey *partner = NULL;
+	struct identity *id;
+	uint8_t slotid;
+	u_int flags;
+	int r, ok = -1;
+	struct piv_ecdh_box *box = NULL, *newbox = NULL;
+	uint8_t *secret = NULL, *out = NULL;
+	size_t seclen = 0, outlen = 0;
+
+	if ((msg = sshbuf_new()) == NULL)
+		fatal("%s: sshbuf_new failed", __func__);
+	if ((r = sshbuf_froms(buf, &boxbuf)) != 0 ||
+	    (r = sshbuf_froms(buf, &guidb)) != 0) {
+		error("%s: couldn't parse request: %s", __func__, ssh_err(r));
+		goto send;
+	}
+	if ((r = sshbuf_get_u8(buf, &slotid)) != 0) {
+		error("%s: couldn't parse request: %s", __func__, ssh_err(r));
+		goto send;
+	}
+	if ((r = sshkey_froms(buf, &partner))) {
+		error("%s: couldn't parse request: %s", __func__, ssh_err(r));
+		goto send;
+	}
+	if ((r = sshbuf_get_u32(buf, &flags))) {
+		error("%s: couldn't parse request: %s", __func__, ssh_err(r));
+		goto send;
+	}
+
+	if (flags != 0) {
+		error("%s: invalid flags: %u", __func__, flags);
+		goto send;
+	}
+
+	if ((r = sshbuf_get_piv_box(boxbuf, &box)) != 0) {
+		verbose("%s: failed to parse box: %s", __func__, ssh_err(r));
+		goto send;
+	}
+
+	if ((id = lookup_identity(box->pdb_pub)) == NULL) {
+		verbose("%s: %s key not found", __func__,
+		    sshkey_type(box->pdb_pub));
+		goto send;
+	}
+	if (id->confirm && confirm_key(id) != 0) {
+		verbose("%s: user refused key", __func__);
+		goto send;
+	}
+	if (sshkey_is_sk(id->key)) {
+		verbose("%s: not supported for sk keys", __func__);
+		goto send;
+	}
+	if (id->key->type != KEY_ECDSA || id->key->ecdsa == NULL) {
+		verbose("%s: not an ecdsa key", __func__);
+		goto send;
+	}
+	if (id->key->ecdsa_nid != partner->ecdsa_nid) {
+		verbose("%s: curve mismatch", __func__);
+		goto send;
+	}
+
+	if ((r = piv_box_open_offline(id->key, box)) != 0) {
+		verbose("%s: failed to open box: %s", __func__, ssh_err(r));
+		goto send;
+	}
+
+	if ((r = piv_box_take_data(box, &secret, &seclen)) != 0) {
+		verbose("%s: failed to take data: %s", __func__, ssh_err(r));
+		goto send;
+	}
+
+	newbox = piv_box_new();
+	if (newbox == NULL) {
+		fatal("%s: failed to allocate memory", __func__);
+	}
+
+	if (sshbuf_len(guidb) == sizeof (box->pdb_guid)) {
+		bcopy(sshbuf_ptr(guidb), box->pdb_guid, sizeof (box->pdb_guid));
+		box->pdb_slot = slotid;
+		box->pdb_guidslot_valid = 1;
+	}
+	piv_box_set_data(newbox, secret, seclen);
+	if ((r = piv_box_seal_offline(partner, newbox)) != 0) {
+		verbose("%s: failed to seal box: %s", __func__, ssh_err(r));
+		goto send;
+	}
+
+	if ((r = piv_box_to_binary(newbox, &out, &outlen)) != 0) {
+		verbose("%s: failed to pack box: %s", __func__, ssh_err(r));
+		goto send;
+	}
+
+	if ((r = sshbuf_put_u8(msg, SSH_AGENT_SUCCESS)) != 0 ||
+	    (r = sshbuf_put_string(msg, out, outlen)) != 0)
+		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+
+	ok = 0;
+
+send:
+	sshkey_free(partner);
+	piv_box_free(box);
+	piv_box_free(newbox);
+	freezero(secret, seclen);
+	freezero(out, outlen);
+	sshbuf_free(boxbuf);
+	sshbuf_free(guidb);
+	if (ok != 0) {
+		if ((r = sshbuf_put_u8(msg, SSH2_AGENT_EXT_FAILURE)) != 0)
+			fatal("%s: buffer error: %s", __func__, ssh_err(r));
+	}
+	if ((r = sshbuf_put_stringb(e->output, msg)) != 0)
+		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+
+	sshbuf_free(msg);
+}
+
+struct exthandler exthandlers[] = {
+	{ "query", process_ext_query },
+	{ "ecdh@joyent.com", process_ext_ecdh },
+	{ "ecdh-rebox@joyent.com", process_ext_ecdh_rebox },
+	{ NULL, NULL }
+};
+
+static void
+process_extension(SocketEntry *e)
+{
+	int r;
+	char *extname = NULL;
+	size_t enlen;
+	struct sshbuf *inner = NULL;
+	struct exthandler *h, *hdlr = NULL;
+
+	if ((r = sshbuf_get_cstring(e->request, &extname, &enlen))) {
+		error("%s: buffer error: %s", __func__, ssh_err(r));
+		goto err;
+	}
+
+	if ((r = sshbuf_froms(e->request, &inner))) {
+		error("%s: buffer error: %s", __func__, ssh_err(r));
+		goto err;
+	}
+
+	for (h = exthandlers; h->eh_name != NULL; ++h) {
+		if (strcmp(h->eh_name, extname) == 0) {
+			hdlr = h;
+			break;
+		}
+	}
+	if (hdlr == NULL) {
+		error("%s: requested unknown ext %s", __func__, extname);
+		goto err;
+	}
+
+	hdlr->eh_handler(e, inner);
+	goto out;
+err:
+	sshbuf_reset(e->request);
+	send_status(e, 0);
+out:
+	sshbuf_free(inner);
+	free(extname);
+}
+
 /* dispatch incoming messages */
 
 static int
@@ -859,6 +1871,9 @@ process_message(u_int socknum)
 		process_remove_smartcard_key(e);
 		break;
 #endif /* ENABLE_PKCS11 */
+	case SSH2_AGENTC_EXTENSION:
+		process_extension(e);
+		break;
 	default:
 		/* Unknown message.  Respond with failure. */
 		error("Unknown message %d", type);
