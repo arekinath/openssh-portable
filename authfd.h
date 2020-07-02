@@ -88,6 +88,7 @@ int	ssh_agent_bind_hostkey(int sock, const struct sshkey *key,
 #define SSH2_AGENTC_REMOVE_IDENTITY		18
 #define SSH2_AGENTC_REMOVE_ALL_IDENTITIES	19
 
+
 /* smartcard */
 #define SSH_AGENTC_ADD_SMARTCARD_KEY		20
 #define SSH_AGENTC_REMOVE_SMARTCARD_KEY		21
@@ -103,6 +104,8 @@ int	ssh_agent_bind_hostkey(int sock, const struct sshkey *key,
 
 /* generic extension mechanism */
 #define SSH_AGENTC_EXTENSION			27
+
+#define SSH_AGENT_EXT_FAILURE			28
 
 #define	SSH_AGENT_CONSTRAIN_LIFETIME		1
 #define	SSH_AGENT_CONSTRAIN_CONFIRM		2
