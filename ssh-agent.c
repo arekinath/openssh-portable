@@ -234,6 +234,9 @@ char socket_dir[PATH_MAX];
 /* PKCS#11/Security key path whitelist */
 static char *provider_whitelist;
 
+/* Check connecting client UID */
+static int check_uid = 1;
+
 /* locking */
 #define LOCK_SIZE	32
 #define LOCK_SALT_SIZE	16
@@ -1942,7 +1945,7 @@ handle_socket_read(u_int socknum)
 		close(fd);
 		return -1;
 	}
-	if ((euid != 0) && (getuid() != euid)) {
+	if (check_uid && (euid != 0) && (getuid() != euid)) {
 		error("uid mismatch: peer euid %u != uid %u",
 		    (u_int) euid, (u_int) getuid());
 		close(fd);
@@ -2184,7 +2187,7 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	    "usage: ssh-agent [-c | -s] [-Dd] [-a bind_address] [-E fingerprint_hash]\n"
+	    "usage: ssh-agent [-c | -s] [-DdU] [-a bind_address] [-E fingerprint_hash]\n"
 	    "                 [-P provider_whitelist] [-t life] [command [arg ...]]\n"
 	    "       ssh-agent [-c | -s] -k\n");
 	exit(1);
@@ -2227,7 +2230,7 @@ main(int ac, char **av)
 	__progname = ssh_get_progname(av[0]);
 	seed_rng();
 
-	while ((ch = getopt(ac, av, "cDdksE:a:P:t:")) != -1) {
+	while ((ch = getopt(ac, av, "cDdksE:a:P:t:U")) != -1) {
 		switch (ch) {
 		case 'E':
 			fingerprint_hash = ssh_digest_alg_by_name(optarg);
@@ -2270,6 +2273,9 @@ main(int ac, char **av)
 				fprintf(stderr, "Invalid lifetime\n");
 				usage();
 			}
+			break;
+		case 'U':
+			check_uid = 0;
 			break;
 		default:
 			usage();
