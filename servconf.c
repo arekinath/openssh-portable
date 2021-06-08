@@ -724,6 +724,12 @@ static struct {
 	{ "useunsupportedsshv1", sDeprecated, SSHCFG_GLOBAL },
 	{ "usefips140", sDeprecated, SSHCFG_ALL},
 	{ "gssapistoredelegatedcredentials", sDeprecated, SSHCFG_ALL },
+	/* The GSSAPIKeyExchange related options are now deprecated too. */
+	{ "gssapikeyexchange", sDeprecated, SSHCFG_GLOBAL },
+	{ "gssapicleanupcreds", sDeprecated, SSHCFG_GLOBAL },
+	{ "gssapistorecredentialsonrekey", sDeprecated, SSHCFG_GLOBAL },
+	{ "gssusesessionccache", sUnsupported, SSHCFG_GLOBAL },
+	{ "gssapiusesessioncredcache", sUnsupported, SSHCFG_GLOBAL },
 #endif
 	{ "revokedkeys", sRevokedKeys, SSHCFG_ALL },
 	{ "trustedusercakeys", sTrustedUserCAKeys, SSHCFG_ALL },
