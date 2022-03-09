@@ -425,3 +425,21 @@ sshbuf_consume_end(struct sshbuf *buf, size_t len)
 	return 0;
 }
 
+
+size_t
+sshbuf_offset(const struct sshbuf *buf)
+{
+	return buf->off;
+}
+
+int
+sshbuf_rewind(struct sshbuf *buf, size_t pos)
+{
+	int r;
+	if ((r = sshbuf_check_sanity(buf)) != 0)
+		return r;
+	if (pos > sshbuf_len(buf))
+		return SSH_ERR_INVALID_ARGUMENT;
+	buf->off = pos;
+	return 0;
+}

@@ -2769,7 +2769,9 @@ subprocess(const char *tag, const char *command,
 			error("%s: dup2: %s", tag, strerror(errno));
 			_exit(1);
 		}
+#if defined(HAVE_CLOSEFROM) && !defined(BROKEN_CLOSEFROM)
 		closefrom(STDERR_FILENO + 1);
+#endif
 
 		if (geteuid() == 0 &&
 		    initgroups(pw->pw_name, pw->pw_gid) == -1) {

@@ -22,12 +22,14 @@
 #define SSH_DIGEST_MAX_LENGTH	64
 
 /* Digest algorithms */
-#define SSH_DIGEST_MD5		0
-#define SSH_DIGEST_SHA1		1
-#define SSH_DIGEST_SHA256	2
-#define SSH_DIGEST_SHA384	3
-#define SSH_DIGEST_SHA512	4
-#define SSH_DIGEST_MAX		5
+enum sshdigest_types {
+	SSH_DIGEST_MD5 = 0,
+	SSH_DIGEST_SHA1 = 1,
+	SSH_DIGEST_SHA256 = 2,
+	SSH_DIGEST_SHA384 = 3,
+	SSH_DIGEST_SHA512 = 4,
+	SSH_DIGEST_MAX
+};
 
 struct sshbuf;
 struct ssh_digest_ctx;

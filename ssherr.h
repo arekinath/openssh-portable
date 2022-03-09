@@ -86,4 +86,30 @@
 /* Translate a numeric error code to a human-readable error string */
 const char *ssh_err(int n);
 
+#define ssherrf(func, code, ...)		\
+    errf(((code) == SSH_ERR_MESSAGE_INCOMPLETE) ? "IncompleteMessageError" : \
+    "LibSSHError", NULL, func " returned %d (%s)", ##__VA_ARGS__, \
+    code, ssh_err(code))
+
+#define make_sslerrf(var, call, action, ...)	\
+	do {	\
+		char _ssl_errbuf[128]; \
+		int _ssl_errflags = 0, _ssl_errline; \
+		const char *_ssl_errdata, *_ssl_errfile; \
+		unsigned long _ssl_err = ERR_peek_last_error(); \
+		ERR_load_crypto_strings(); \
+		ERR_error_string(_ssl_err, _ssl_errbuf); \
+		ERR_get_error_line_data(&_ssl_errfile, &_ssl_errline, \
+		    &_ssl_errdata, &_ssl_errflags); \
+		var = NULL; \
+		if (_ssl_errflags & ERR_TXT_STRING) { \
+			var = errf("OpenSSLErrorData", var, "%s", \
+			    _ssl_errdata); \
+		} \
+		var = errf("OpenSSLError", var, \
+		    call " (%s:%d) returned error %u (%s) while " action, \
+		    _ssl_errfile, _ssl_errline, _ssl_err, _ssl_errbuf, \
+		    ##__VA_ARGS__); \
+	} while (0)
+
 #endif /* _SSHERR_H */

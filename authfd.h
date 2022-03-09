@@ -59,6 +59,8 @@ int	ssh_update_card(int sock, int add, const char *reader_id,
 	    size_t ndest_constraints);
 int	ssh_remove_all_identities(int sock, int version);
 
+int	ssh_request_reply(int, struct sshbuf *, struct sshbuf *);
+
 int	ssh_agent_sign(int sock, const struct sshkey *key,
 	    u_char **sigp, size_t *lenp,
 	    const u_char *data, size_t datalen, const char *alg, u_int compat);
@@ -102,6 +104,8 @@ int	ssh_agent_bind_hostkey(int sock, const struct sshkey *key,
 
 /* generic extension mechanism */
 #define SSH_AGENTC_EXTENSION			27
+
+#define	SSH_AGENT_EXT_FAILURE			28
 
 #define	SSH_AGENT_CONSTRAIN_LIFETIME		1
 #define	SSH_AGENT_CONSTRAIN_CONFIRM		2

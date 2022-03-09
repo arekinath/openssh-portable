@@ -231,6 +231,13 @@ arc4random_buf(void *buf, size_t n)
 }
 DEF_WEAK(arc4random_buf);
 # endif /* !HAVE_ARC4RANDOM_BUF */
+#else /* !HAVE_ARC4RANDOM */
+# ifndef HAVE_ARC4RANDOM_STIR
+void
+arc4random_stir(void)
+{
+}
+# endif /* !HAVE_ARC4RANDOM_STIR */
 #endif /* !HAVE_ARC4RANDOM */
 
 /* arc4random_buf() that uses platform arc4random() */

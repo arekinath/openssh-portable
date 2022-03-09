@@ -26,11 +26,14 @@
 #ifndef SSHKEY_H
 #define SSHKEY_H
 
+#include "config.h"
+#include "digest.h"
 #include <sys/types.h>
 
 #ifdef WITH_OPENSSL
 #include <openssl/rsa.h>
 #include <openssl/dsa.h>
+#include <openssl/evp.h>
 # ifdef OPENSSL_HAS_ECC
 #  include <openssl/ec.h>
 #  include <openssl/ecdsa.h>
@@ -218,6 +221,9 @@ u_int		 sshkey_size(const struct sshkey *);
 int		 sshkey_generate(int type, u_int bits, struct sshkey **keyp);
 int		 sshkey_from_private(const struct sshkey *, struct sshkey **);
 
+/* Compat */
+#define	sshkey_demote	sshkey_from_private
+
 int		 sshkey_is_shielded(struct sshkey *);
 int		 sshkey_shield_private(struct sshkey *);
 int		 sshkey_unshield_private(struct sshkey *);
@@ -321,6 +327,13 @@ int	 sshkey_private_serialize_maxsign(struct sshkey *key,
     struct sshbuf *buf, u_int32_t maxsign, int);
 
 void	 sshkey_sig_details_free(struct sshkey_sig_details *);
+
+int	 sshkey_from_evp_pkey(EVP_PKEY *pk, int type, struct sshkey **keyp);
+
+int	 sshkey_sig_from_asn1(const struct sshkey *key, enum sshdigest_types,
+    const uint8_t *sig, size_t siglen, struct sshbuf *buf);
+int	 sshkey_sig_to_asn1(const struct sshkey *key, struct sshbuf *sshsig,
+    enum sshdigest_types *dtype, struct sshbuf *asn1sig);
 
 #ifdef SSHKEY_INTERNAL
 int	sshkey_sk_fields_equal(const struct sshkey *a, const struct sshkey *b);

@@ -225,8 +225,8 @@ uint32_t arc4random(void);
 void arc4random_buf(void *, size_t);
 #endif
 
-#ifndef HAVE_ARC4RANDOM_STIR
-# define arc4random_stir()
+#if !defined(HAVE_ARC4RANDOM_STIR) && !defined(HAVE_ARC4RANDOM)
+void arc4random_stir(void);
 #endif
 
 #ifndef HAVE_ARC4RANDOM_UNIFORM
