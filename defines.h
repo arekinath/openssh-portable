@@ -906,7 +906,7 @@ struct winsize {
  */
 #if defined(HAVE_ARC4RANDOM) && defined(HAVE_ARC4RANDOM_UNIFORM) && \
     !defined(HAVE_ARC4RANDOM_STIR)
-# define arc4random_stir()
+void arc4random_stir(void);
 #endif
 
 #ifndef HAVE_VA_COPY

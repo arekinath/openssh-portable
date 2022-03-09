@@ -2212,17 +2212,21 @@ sshkey_sign(struct sshkey *key,
 		return SSH_ERR_KEY_TYPE_UNKNOWN;
 	if ((r = sshkey_unshield_private(key)) != 0)
 		return r;
+#if defined(WITH_SK)
 	if (sshkey_is_sk(key)) {
 		r = sshsk_sign(sk_provider, key, sigp, lenp, data,
 		    datalen, compat, sk_pin);
 	} else {
+#endif
 		if (impl->funcs->sign == NULL)
 			r = SSH_ERR_SIGN_ALG_UNSUPPORTED;
 		else {
 			r = impl->funcs->sign(key, sigp, lenp, data, datalen,
 			    alg, sk_provider, sk_pin, compat);
-		 }
+		}
+#if defined(WITH_SK)
 	}
+#endif
 	if (was_shielded && (r2 = sshkey_shield_private(key)) != 0)
 		return r2;
 	return r;
@@ -3842,3 +3846,413 @@ sshkey_set_filename(struct sshkey *k, const char *filename)
 	return 0;
 }
 #endif /* WITH_XMSS */
+
+int
+sshkey_from_evp_pkey(EVP_PKEY *pk, int type, struct sshkey **keyp)
+{
+	struct sshkey *prv = NULL;
+	int r;
+	int pktype = EVP_PKEY_base_id(pk);
+	EVP_PKEY *pkey;
+	RSA *rsa;
+	EC_KEY *eck;
+	DSA *dsa;
+
+	pkey = EVP_PKEY_new();
+	if (pkey == NULL) {
+		r = SSH_ERR_ALLOC_FAIL;
+		goto out;
+	}
+
+	if (pktype == EVP_PKEY_RSA &&
+	    (type == KEY_UNSPEC || type == KEY_RSA)) {
+		if ((prv = sshkey_new(KEY_RSA)) == NULL) {
+			r = SSH_ERR_ALLOC_FAIL;
+			goto out;
+		}
+		rsa = EVP_PKEY_get1_RSA(pk);
+		EVP_PKEY_set1_RSA(pkey, rsa);
+
+	} else if (pktype == EVP_PKEY_DSA &&
+	    (type == KEY_UNSPEC || type == KEY_DSA)) {
+		if ((prv = sshkey_new(KEY_DSA)) == NULL) {
+			r = SSH_ERR_ALLOC_FAIL;
+			goto out;
+		}
+		dsa = EVP_PKEY_get1_DSA(pk);
+		EVP_PKEY_set1_DSA(pkey, dsa);
+
+	} else if (pktype == EVP_PKEY_EC &&
+	    (type == KEY_UNSPEC || type == KEY_ECDSA)) {
+		if ((prv = sshkey_new(KEY_ECDSA)) == NULL) {
+			r = SSH_ERR_ALLOC_FAIL;
+			goto out;
+		}
+		eck = EVP_PKEY_get1_EC_KEY(pk);
+		prv->ecdsa_nid = sshkey_ecdsa_key_to_nid(eck);
+		if (prv->ecdsa_nid == -1 ||
+		    sshkey_curve_nid_to_name(prv->ecdsa_nid) == NULL ||
+		    sshkey_ec_validate_public(EC_KEY_get0_group(eck),
+		    EC_KEY_get0_public_key(eck)) != 0) {
+			r = SSH_ERR_INVALID_FORMAT;
+			goto out;
+		}
+		EVP_PKEY_set1_EC_KEY(pkey, eck);
+
+	} else if (pktype == EVP_PKEY_ED25519 &&
+	    (type == KEY_UNSPEC || type == KEY_ED25519)) {
+		size_t n = ED25519_PK_SZ;
+		if ((prv = sshkey_new(KEY_ED25519)) == NULL) {
+			r = SSH_ERR_ALLOC_FAIL;
+			goto out;
+		}
+		prv->ed25519_pk = malloc(n);
+		if (prv->ed25519_pk == NULL) {
+			r = SSH_ERR_ALLOC_FAIL;
+			goto out;
+		}
+		r = EVP_PKEY_get_raw_public_key(pk, prv->ed25519_pk, &n);
+		if (r != 1 || n != ED25519_PK_SZ) {
+			r = SSH_ERR_LIBCRYPTO_ERROR;
+			goto out;
+		}
+
+		pkey = NULL;
+
+	} else {
+		r = SSH_ERR_INVALID_FORMAT;
+		goto out;
+	}
+
+	EVP_PKEY_free(prv->pkey);
+	prv->pkey = pkey;
+
+	r = 0;
+	if (keyp != NULL) {
+		*keyp = prv;
+		prv = NULL;
+	}
+ out:
+	sshkey_free(prv);
+	return r;
+}
+
+static int
+ssh_ecdsa_sig_from_asn1(enum sshdigest_types dtype, const uint8_t *sig,
+    size_t siglen, struct sshbuf *buf)
+{
+	ECDSA_SIG *esig = NULL;
+	struct sshbuf *b;
+	int nid;
+	const char *type;
+	const uint8_t *ptr;
+	int rv;
+
+	switch (dtype) {
+	case SSH_DIGEST_SHA256:
+		nid = NID_X9_62_prime256v1;
+		break;
+	case SSH_DIGEST_SHA384:
+		nid = NID_secp384r1;
+		break;
+	case SSH_DIGEST_SHA512:
+		nid = NID_secp521r1;
+		break;
+	default:
+		return (SSH_ERR_KEY_TYPE_MISMATCH);
+	}
+
+	b = sshbuf_new();
+	if (b == NULL)
+		return (SSH_ERR_ALLOC_FAIL);
+
+	type = sshkey_ssh_name_from_type_nid(KEY_ECDSA, nid);
+
+	ptr = sig;
+	if (d2i_ECDSA_SIG(&esig, (const uint8_t **)&ptr, siglen) == NULL) {
+		rv = SSH_ERR_INVALID_ARGUMENT;
+		goto out;
+	}
+	if (esig == NULL || ptr <= sig || ((size_t)(ptr - sig) < siglen)) {
+		rv = SSH_ERR_INVALID_ARGUMENT;
+		goto out;
+	}
+
+	if ((rv = sshbuf_put_bignum2(b, ECDSA_SIG_get0_r(esig))) != 0 ||
+	    (rv = sshbuf_put_bignum2(b, ECDSA_SIG_get0_s(esig))) != 0) {
+		goto out;
+	}
+
+	if ((rv = sshbuf_put_cstring(buf, type)) != 0 ||
+	    (rv = sshbuf_put_stringb(buf, b)) != 0) {
+		goto out;
+	}
+
+	rv = 0;
+
+out:
+	sshbuf_free(b);
+	if (esig != NULL)
+		ECDSA_SIG_free(esig);
+	return (rv);
+}
+
+static const char *
+rsa_hash_alg_ident(int hash_alg)
+{
+	switch (hash_alg) {
+	case SSH_DIGEST_SHA1:
+		return "ssh-rsa";
+	case SSH_DIGEST_SHA256:
+		return "rsa-sha2-256";
+	case SSH_DIGEST_SHA512:
+		return "rsa-sha2-512";
+	}
+	return NULL;
+}
+
+static int
+rsa_hash_alg_from_ident(const char *ident)
+{
+	if (strcasecmp(ident, "ssh-rsa") == 0 ||
+	    strcasecmp(ident, "ssh-rsa-cert-v01@openssh.com") == 0)
+		return SSH_DIGEST_SHA1;
+	if (strcasecmp(ident, "rsa-sha2-256") == 0)
+		return SSH_DIGEST_SHA256;
+	if (strcasecmp(ident, "rsa-sha2-512") == 0)
+		return SSH_DIGEST_SHA512;
+	return -1;
+}
+
+static int
+rsa_hash_alg_nid(int type)
+{
+	switch (type) {
+	case SSH_DIGEST_SHA1:
+		return NID_sha1;
+	case SSH_DIGEST_SHA256:
+		return NID_sha256;
+	case SSH_DIGEST_SHA512:
+		return NID_sha512;
+	default:
+		return -1;
+	}
+}
+
+static int
+ssh_rsa_sig_from_asn1(const struct sshkey *pubkey, enum sshdigest_types dtype,
+    const uint8_t *sig, size_t siglen, struct sshbuf *buf)
+{
+	int r;
+	const char *algid = rsa_hash_alg_ident(dtype);
+	size_t slen;
+	RSA *rsa;
+
+	if (algid == NULL)
+		return (SSH_ERR_KEY_TYPE_MISMATCH);
+	if (pubkey->type != KEY_RSA)
+		return (SSH_ERR_KEY_TYPE_MISMATCH);
+
+	rsa = EVP_PKEY_get1_RSA(pubkey->pkey);
+	slen = RSA_size(rsa);
+	if (slen <= 0 || slen > SSHBUF_MAX_BIGNUM)
+		return (SSH_ERR_INVALID_ARGUMENT);
+	if (slen != siglen)
+		return (SSH_ERR_INVALID_ARGUMENT);
+
+	if ((r = sshbuf_put_cstring(buf, algid)) != 0 ||
+	    (r = sshbuf_put_string(buf, sig, siglen)) != 0) {
+		return (r);
+	}
+
+	return (0);
+}
+
+static int
+ssh_ed25519_sig_from_asn1(enum sshdigest_types dtype, const uint8_t *sig,
+    size_t siglen, struct sshbuf *buf)
+{
+	int r;
+
+	if (dtype != 0 && dtype != SSH_DIGEST_SHA512)
+		return (SSH_ERR_KEY_TYPE_MISMATCH);
+
+	if (siglen != crypto_sign_ed25519_BYTES)
+		return (SSH_ERR_INVALID_ARGUMENT);
+
+	if ((r = sshbuf_put_cstring(buf, "ssh-ed25519")) != 0 ||
+	    (r = sshbuf_put_string(buf, sig, siglen)) != 0) {
+		return (r);
+	}
+
+	return (0);
+}
+
+int
+sshkey_sig_from_asn1(const struct sshkey *key, enum sshdigest_types dtype,
+    const uint8_t *sig, size_t siglen, struct sshbuf *buf)
+{
+	if (siglen == 0)
+		return SSH_ERR_INVALID_ARGUMENT;
+	switch (key->type) {
+	case KEY_ECDSA_CERT:
+	case KEY_ECDSA:
+		return ssh_ecdsa_sig_from_asn1(dtype, sig, siglen, buf);
+	case KEY_RSA_CERT:
+	case KEY_RSA:
+		return ssh_rsa_sig_from_asn1(key, dtype, sig, siglen, buf);
+	case KEY_ED25519:
+	case KEY_ED25519_CERT:
+		return ssh_ed25519_sig_from_asn1(dtype, sig, siglen, buf);
+	default:
+		return SSH_ERR_KEY_TYPE_UNKNOWN;
+	}
+}
+
+static int
+ssh_rsa_sig_to_asn1(const char *typename, struct sshbuf *sshsig,
+    enum sshdigest_types *dtype, struct sshbuf *asn1sig)
+{
+	u_char *v = NULL;
+	size_t len;
+	int rc;
+
+	if ((rc = sshbuf_get_string(sshsig, &v, &len)))
+		goto out;
+
+	if ((rc = sshbuf_put(asn1sig, v, len)))
+		goto out;
+
+	rc = 0;
+	*dtype = rsa_hash_alg_from_ident(typename);
+
+out:
+	free(v);
+	return rc;
+}
+
+static int
+ssh_ecdsa_sig_to_asn1(const struct sshkey *key, struct sshbuf *sshsig,
+    enum sshdigest_types *dtype, struct sshbuf *asn1sig)
+{
+	ECDSA_SIG *esig = NULL;
+	uint8_t *buf = NULL;
+	size_t len;
+	int rc;
+	BIGNUM *r = NULL, *s = NULL;
+
+	switch (key->ecdsa_nid) {
+	case NID_X9_62_prime256v1:
+		*dtype = SSH_DIGEST_SHA256;
+		break;
+	case NID_secp384r1:
+		*dtype = SSH_DIGEST_SHA384;
+		break;
+	case NID_secp521r1:
+		*dtype = SSH_DIGEST_SHA512;
+		break;
+	default:
+		rc = SSH_ERR_KEY_TYPE_MISMATCH;
+		goto out;
+	}
+
+	esig = ECDSA_SIG_new();
+	if (esig == NULL)
+		return SSH_ERR_ALLOC_FAIL;
+
+	if ((rc = sshbuf_get_bignum2(sshsig, &r)) ||
+	    (rc = sshbuf_get_bignum2(sshsig, &s)))
+		goto out;
+
+	rc = ECDSA_SIG_set0(esig, r, s);
+	if (rc != 1) {
+		rc = SSH_ERR_LIBCRYPTO_ERROR;
+		goto out;
+	}
+	/* ECDSA_SIG_set0 takes ownership of the bignums */
+	r = NULL;
+	s = NULL;
+
+	len = i2d_ECDSA_SIG(esig, &buf);
+	if (len <= 0) {
+		rc = SSH_ERR_LIBCRYPTO_ERROR;
+		goto out;
+	}
+
+	if ((rc = sshbuf_put(asn1sig, buf, len)))
+		goto out;
+
+	rc = 0;
+
+out:
+	ECDSA_SIG_free(esig);
+	BN_free(r);
+	BN_free(s);
+	OPENSSL_free(buf);
+	return (rc);
+}
+
+static int
+ssh_ed25519_sig_to_asn1(struct sshbuf *sshsig, enum sshdigest_types *dtype,
+    struct sshbuf *asn1sig)
+{
+	u_char *v = NULL;
+	size_t len;
+	int rc;
+
+	if ((rc = sshbuf_get_string(sshsig, &v, &len)))
+		goto out;
+
+	if (len != crypto_sign_ed25519_BYTES)
+		return SSH_ERR_INVALID_FORMAT;
+
+	if ((rc = sshbuf_put(asn1sig, v, len)))
+		goto out;
+
+	rc = 0;
+	*dtype = SSH_DIGEST_SHA512;
+
+out:
+	free(v);
+	return rc;
+}
+
+int
+sshkey_sig_to_asn1(const struct sshkey *key, struct sshbuf *sshsig,
+    enum sshdigest_types *dtype, struct sshbuf *asn1sig)
+{
+	int rc;
+	char *typename;
+	int ktype;
+
+	rc = sshbuf_get_cstring(sshsig, &typename, NULL);
+	if (rc != 0)
+		return rc;
+
+	ktype = sshkey_type_from_name(typename);
+	if (ktype == KEY_UNSPEC)
+		return SSH_ERR_KEY_TYPE_UNKNOWN;
+
+	if (key->type != KEY_UNSPEC && key->type != ktype)
+		return SSH_ERR_KEY_TYPE_MISMATCH;
+
+	switch (ktype) {
+	case KEY_RSA:
+	case KEY_RSA_CERT:
+		rc = ssh_rsa_sig_to_asn1(typename, sshsig, dtype, asn1sig);
+		break;
+	case KEY_ECDSA:
+	case KEY_ECDSA_CERT:
+		rc = ssh_ecdsa_sig_to_asn1(key, sshsig, dtype, asn1sig);
+		break;
+	case KEY_ED25519:
+	case KEY_ED25519_CERT:
+		rc = ssh_ed25519_sig_to_asn1(sshsig, dtype, asn1sig);
+		break;
+	default:
+		rc = SSH_ERR_KEY_TYPE_UNKNOWN;
+	}
+
+	free(typename);
+	return rc;
+}
